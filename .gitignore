@@ -11,20 +11,19 @@ firmware/include/lora_mail_config.h
 # Operational captures and private exports
 logs/
 *.log
-API Endpoint.txt
-DeploymentAPIkey.txt
-Make_My_API_Token.txt
-HealthchecksAPI.txt
-GitHub Email.txt
-Cloudflare账户API令牌.txt
-backup-home-before-*.yaml
-home-current-*.yaml
-*-meshtastic-backup-*.yaml
-home-before-*.txt
-home-before-*.yaml
-make-*.json
-emqx-*.json
-emqx-*.txt
+/*.txt
+/*.json
+/*.yaml
+/*.yml
+/*.jpg
+/*.jpeg
+/*.png
+/*token*
+/*Token*
+/*secret*
+/*Secret*
+/*credential*
+/*Credential*
 *.crt
 
 # Build outputs and dependency caches
