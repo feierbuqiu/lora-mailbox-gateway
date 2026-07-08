@@ -47,6 +47,27 @@ Rotate these independently:
 - MQTT passwords: update broker credentials, firmware config, and Cloudflare panel env vars.
 - `PANEL_SETUP_TOKEN`: remove after registration; set a new temporary value only to add a new passkey.
 
+## Release and Package Operations
+
+Public releases and packages are part of the operational surface:
+
+- Repository releases are attached to signed annotated tags such as `v0.1.0`.
+- Panel package publications are attached to signed tags such as `lora-mailbox-panel-v0.1.0`.
+- Release assets include checksum files so downstream users can verify downloads.
+- The panel package is published by the `Publish Web Panel Package` workflow with `GITHUB_TOKEN` and `packages: write`.
+
+Before publishing a new release or package:
+
+```powershell
+git status -sb --ignored
+git log --show-signature --oneline -1
+git verify-commit HEAD
+npm.cmd --prefix web-panel run build
+npm.cmd --prefix web-panel run pack:inspect
+```
+
+Use `git tag -s` for public release tags and verify the tag with `git tag -v <tag>` before pushing. After publishing, confirm GitHub reports `verified: true` for the commit/tag and that CI completes successfully.
+
 ## Local Meshtastic Proxy
 
 `tools/meshtastic-web-local-proxy.mjs` is retained for legacy Meshtastic setup and recovery. It proxies the hosted Meshtastic web client through localhost and stretches a short reachability timeout. It is not required for the custom firmware path.

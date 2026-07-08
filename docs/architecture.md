@@ -56,3 +56,13 @@ The default panel topic prefix is `mailbox`.
 The browser never receives MQTT credentials until it has a valid Worker session cookie. The Worker validates a WebAuthn/passkey challenge, creates a 30-day session, and then allows access to static panel assets plus `/api/config`.
 
 Registration is intentionally controlled by `SETUP_TOKEN`. Remove that environment variable after the owner passkey is registered.
+
+## Distribution Surfaces
+
+The project is distributed through three public surfaces:
+
+- The Git repository for source, documentation, CI, issues, and security advisories.
+- GitHub Releases for pinned, checksumed release artifacts such as example firmware builds and web panel bundles.
+- GitHub Packages for the reusable Cloudflare panel package `@feierbuqiu/lora-mailbox-panel`.
+
+Firmware remains source-first because production binaries depend on private WiFi, LoRa, webhook, MQTT, and Healthchecks values. The published firmware archive is an example build for inspection and smoke testing, not a credential-bearing deployment image.

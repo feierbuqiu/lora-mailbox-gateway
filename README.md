@@ -19,13 +19,31 @@ firmware/              PlatformIO firmware for home/mail/hello environments
 tools/                 Local setup, test, and legacy bridge utilities
 web-panel/             Cloudflare Pages Worker and static panel source
 docs/                  Architecture, setup, hardware, and operations guides
-.github/workflows/     CI for firmware and panel builds
+.github/workflows/     CI and package publication workflows
 .env.example           Local environment template
 ```
 
 Private credentials, operational exports, logs, photos, and historical snapshots are intentionally not tracked. Local copies belong in `.env`, `firmware/include/lora_mail_config.h`, and `.local/`, all of which are ignored.
 
+## Published Artifacts
+
+- First public release: [v0.1.0](https://github.com/feierbuqiu/lora-mailbox-gateway/releases/tag/v0.1.0)
+- GitHub Packages npm package: `@feierbuqiu/lora-mailbox-panel@0.1.0`
+- Signed source tags:
+  - `v0.1.0` for the first full repository release
+  - `lora-mailbox-panel-v0.1.0` for the first panel package publication
+
+The release includes a Cloudflare panel build, example firmware builds, and `SHA256SUMS.txt`. Example firmware binaries are for inspection and smoke testing only; production firmware should be rebuilt locally with your own ignored configuration.
+
 ## Quick Start
+
+Choose the path that matches your goal:
+
+- **Use the release** when you want a pinned, checksumed baseline.
+- **Build from source** when you are provisioning real hardware.
+- **Install the package** when you only need the Cloudflare panel source.
+
+### Build From Source
 
 1. Install PlatformIO, Node.js 20+, and Python 3.11+.
 2. Copy `.env.example` to `.env`.
@@ -50,13 +68,17 @@ See [docs/setup.md](docs/setup.md) for full provisioning and deployment steps.
 
 ## Package
 
-The Cloudflare panel is published separately as a GitHub Packages npm package:
+The Cloudflare panel is published separately through GitHub Packages:
 
 ```text
 @feierbuqiu/lora-mailbox-panel
 ```
 
-Use it when you want to inspect or rebuild the panel without cloning the full firmware repository. GitHub Packages requires npm authentication, so configure the `@feierbuqiu` scope for `https://npm.pkg.github.com` before installing.
+Use it when you want to inspect or rebuild the panel without cloning the full firmware repository. GitHub Packages requires npm authentication, so configure the `@feierbuqiu` scope for `https://npm.pkg.github.com` before installing:
+
+```ini
+@feierbuqiu:registry=https://npm.pkg.github.com
+```
 
 ## Security Notes
 

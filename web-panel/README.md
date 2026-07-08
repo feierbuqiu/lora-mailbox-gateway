@@ -2,6 +2,12 @@
 
 Cloudflare Pages Worker and static status panel for LoRa Mailbox Gateway. The package is published to GitHub Packages so the panel source can be consumed, inspected, and rebuilt independently from the full firmware repository.
 
+Current package:
+
+```text
+@feierbuqiu/lora-mailbox-panel@0.1.0
+```
+
 ## Install
 
 Create or update an `.npmrc` file for the GitHub Packages scope:
@@ -47,6 +53,16 @@ Secrets are not embedded in the package. Supply runtime values through Cloudflar
 - optional `HC_CHECK_UUID`
 
 See the repository setup and operations guides before deploying this panel publicly.
+
+## Publication
+
+This package is published by the repository's `Publish Web Panel Package` workflow. Package tags use the form:
+
+```text
+lora-mailbox-panel-v<version>
+```
+
+The first package tag is `lora-mailbox-panel-v0.1.0`.
 
 ## License
 

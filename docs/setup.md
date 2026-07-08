@@ -2,6 +2,16 @@
 
 This guide provisions a reproducible open-source deployment without committing credentials.
 
+## Choose a Starting Point
+
+There are three supported entry points:
+
+- **Release artifacts**: use [v0.1.0](https://github.com/feierbuqiu/lora-mailbox-gateway/releases/tag/v0.1.0) when you want a pinned public baseline with checksums.
+- **Source checkout**: clone the repository when provisioning real hardware or changing firmware/panel behavior.
+- **Panel package**: install `@feierbuqiu/lora-mailbox-panel` from GitHub Packages when you only need the Cloudflare panel source.
+
+Release binaries are built with the public example configuration. They do not contain production credentials and should not be treated as drop-in production firmware.
+
 ## Prerequisites
 
 - PlatformIO CLI
@@ -12,6 +22,30 @@ This guide provisions a reproducible open-source deployment without committing c
 ```powershell
 python -m pip install -r requirements.txt
 ```
+
+## Release Artifacts
+
+Download the latest public release from:
+
+```text
+https://github.com/feierbuqiu/lora-mailbox-gateway/releases
+```
+
+For `v0.1.0`, the release contains:
+
+- `lora-mailbox-gateway-v0.1.0-example-firmware.zip`
+- `lora-mailbox-gateway-v0.1.0-web-panel.zip`
+- `SHA256SUMS.txt`
+
+Verify downloaded artifacts before inspecting or deploying them:
+
+```powershell
+Get-FileHash .\lora-mailbox-gateway-v0.1.0-web-panel.zip -Algorithm SHA256
+Get-FileHash .\lora-mailbox-gateway-v0.1.0-example-firmware.zip -Algorithm SHA256
+Get-Content .\SHA256SUMS.txt
+```
+
+The firmware archive is an example build produced from `lora_mail_config.example.h`. For real devices, rebuild from source after filling `firmware/include/lora_mail_config.h` with your private values.
 
 ## Local Configuration
 
@@ -98,6 +132,28 @@ npx wrangler pages deploy deploy --project-name <cloudflare-pages-project>
 ```
 
 After registering your passkey, remove `SETUP_TOKEN` and redeploy or update the environment.
+
+## Panel Package
+
+The panel source is also published as a GitHub Packages npm package:
+
+```text
+@feierbuqiu/lora-mailbox-panel
+```
+
+Configure the GitHub Packages scope:
+
+```ini
+@feierbuqiu:registry=https://npm.pkg.github.com
+```
+
+Then install it in a separate workspace if you only need the panel:
+
+```powershell
+npm install @feierbuqiu/lora-mailbox-panel
+```
+
+GitHub Packages requires an authenticated npm client, even for public packages. Keep npm tokens in your user-level npm config or CI secrets, not in this repository.
 
 ## Make/Webhook Contract
 
