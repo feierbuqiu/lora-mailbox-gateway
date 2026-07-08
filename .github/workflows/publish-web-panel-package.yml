@@ -1,0 +1,38 @@
+name: Publish Web Panel Package
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Publish npm package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+          scope: "@feierbuqiu"
+          cache: npm
+          cache-dependency-path: web-panel/package-lock.json
+      - name: Install dependencies
+        working-directory: web-panel
+        run: npm ci
+      - name: Build package
+        working-directory: web-panel
+        run: npm run build
+      - name: Inspect package contents
+        working-directory: web-panel
+        run: npm pack --dry-run
+      - name: Publish package
+        working-directory: web-panel
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

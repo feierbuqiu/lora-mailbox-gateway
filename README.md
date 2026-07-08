@@ -48,6 +48,16 @@ npm run build
 
 See [docs/setup.md](docs/setup.md) for full provisioning and deployment steps.
 
+## Package
+
+The Cloudflare panel is published separately as a GitHub Packages npm package:
+
+```text
+@feierbuqiu/lora-mailbox-panel
+```
+
+Use it when you want to inspect or rebuild the panel without cloning the full firmware repository. GitHub Packages requires npm authentication, so configure the `@feierbuqiu` scope for `https://npm.pkg.github.com` before installing.
+
 ## Security Notes
 
 This repository is designed so secrets are supplied at build/deploy time, not committed:
