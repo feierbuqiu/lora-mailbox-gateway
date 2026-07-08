@@ -1,0 +1,25 @@
+{
+  "name": "lora-mailbox-panel",
+  "version": "0.1.0",
+  "description": "Cloudflare Pages passkey gate and status panel for the LoRa mailbox gateway.",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "deploy": "npm run build && npx wrangler pages deploy deploy",
+    "check": "npm run build"
+  },
+  "keywords": [
+    "cloudflare-pages",
+    "webauthn",
+    "mqtt",
+    "lora"
+  ],
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@simplewebauthn/server": "11.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1"
+  }
+}

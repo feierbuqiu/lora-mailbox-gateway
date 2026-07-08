@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  firmware:
+    name: Firmware
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install PlatformIO
+        run: python -m pip install --upgrade platformio
+      - name: Use example firmware config
+        run: cp firmware/include/lora_mail_config.example.h firmware/include/lora_mail_config.h
+      - name: Build firmware
+        run: platformio run -d firmware -e home -e mail -e hello
+
+  web-panel:
+    name: Web Panel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web-panel/package-lock.json
+      - name: Install dependencies
+        working-directory: web-panel
+        run: npm ci
+      - name: Build panel
+        working-directory: web-panel
+        run: npm run build

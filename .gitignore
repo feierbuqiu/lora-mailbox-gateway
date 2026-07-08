@@ -1,0 +1,48 @@
+# Local secrets and machine-specific state
+.env
+.env.*
+!.env.example
+*.secret.*
+*.secret.txt
+*.secret.yaml
+firmware/include/lora_mail_config.h
+.local/
+
+# Operational captures and private exports
+logs/
+*.log
+API Endpoint.txt
+DeploymentAPIkey.txt
+Make_My_API_Token.txt
+HealthchecksAPI.txt
+GitHub Email.txt
+Cloudflare账户API令牌.txt
+backup-home-before-*.yaml
+home-current-*.yaml
+*-meshtastic-backup-*.yaml
+home-before-*.txt
+home-before-*.yaml
+make-*.json
+emqx-*.json
+emqx-*.txt
+*.crt
+
+# Build outputs and dependency caches
+firmware/.pio/
+firmware/.vscode/
+web-panel/node_modules/
+web-panel/deploy/
+web-panel/.wrangler/
+.wrangler/
+
+# Local agent/editor noise
+.agents/
+.codex/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
+.DS_Store

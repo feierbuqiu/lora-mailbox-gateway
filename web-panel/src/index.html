@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>LoRa Mailbox Panel</title>
+<style>
+:root {
+  --bg:#f5f6f8; --surface:#fff; --text:#1a1d21; --muted:#667085;
+  --border:#d9dee7; --green:#168a4a; --yellow:#b7791f; --red:#c24135;
+  --primary:#2563eb; --secondary:#475467;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#111418; --surface:#1c2128; --text:#e6e8ea; --muted:#9aa3ad; --border:#303846; }
+}
+* { box-sizing:border-box; }
+body { margin:0; min-height:100vh; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+main { width:min(760px, 100%); margin:0 auto; padding:18px; }
+header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:4px 0 16px; }
+h1 { font-size:22px; margin:0; }
+.status { color:var(--muted); font-size:13px; }
+.grid { display:grid; grid-template-columns:1fr; gap:12px; }
+@media (min-width:720px) { .grid { grid-template-columns:1.15fr .85fr; } }
+.panel { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px; }
+.state { min-height:180px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; }
+.state strong { font-size:28px; margin-bottom:8px; }
+.state span { color:var(--muted); font-size:14px; }
+.rows { display:grid; gap:8px; }
+.row { display:flex; justify-content:space-between; gap:16px; font-size:14px; }
+.row .label { color:var(--muted); }
+.dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; background:#98a2b3; }
+.ok { background:var(--green); } .warn { background:var(--yellow); } .bad { background:var(--red); }
+.actions { display:grid; gap:10px; margin-top:12px; }
+button { border:0; border-radius:6px; padding:12px 14px; font-weight:650; font-size:14px; color:#fff; background:var(--primary); cursor:pointer; }
+button.secondary { background:transparent; color:var(--secondary); border:1px solid var(--border); }
+button:disabled { opacity:.55; cursor:not-allowed; }
+.low { color:var(--red); font-weight:700; }
+footer { color:var(--muted); font-size:12px; text-align:center; padding:18px 0 8px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>LoRa Mailbox</h1>
+    <div id="connection" class="status">Loading config</div>
+  </header>
+
+  <div class="grid">
+    <section class="panel state" id="statePanel">
+      <strong id="stateText">Waiting for data</strong>
+      <span id="stateDetail">The panel has not received retained MQTT state yet.</span>
+    </section>
+
+    <section class="panel">
+      <div class="rows">
+        <div class="row"><span class="label">Mailbox node</span><span id="nodeHealth"><span class="dot"></span>Unknown</span></div>
+        <div class="row"><span class="label">Gateway</span><span id="gateway"><span class="dot"></span>Unknown</span></div>
+        <div class="row"><span class="label">Heartbeat age</span><span id="heartbeatAge">-</span></div>
+        <div class="row"><span class="label">Battery</span><span id="battery">-</span></div>
+        <div class="row"><span class="label">Battery alert</span><span id="batteryAlert">-</span></div>
+        <div class="row"><span class="label">Node mode</span><span id="mode">-</span></div>
+        <div class="row"><span class="label">Sampling</span><span id="sampling">-</span></div>
+        <div class="row"><span class="label">Uptime</span><span id="uptime">-</span></div>
+        <div class="row"><span class="label">Last event</span><span id="event">-</span></div>
+        <div class="row"><span class="label">Offline monitor</span><span id="alarm">-</span></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel actions">
+    <button id="resetBtn" disabled>Mark collected</button>
+    <button id="hbBtn" class="secondary">Request heartbeat</button>
+    <button id="modeBtn" class="secondary">Toggle debug mode</button>
+    <button id="testBtn" class="secondary">Send test delivery</button>
+    <button id="maintBtn" class="secondary">Pause offline monitor</button>
+  </section>
+
+  <footer>Authenticated panel. MQTT credentials are loaded from Worker environment variables after login.</footer>
+</main>
+
+<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script>
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+let config;
+let topics;
+let status = null;
+let heartbeat = null;
+let gateway = null;
+let mode = null;
+let client = null;
+
+function dot(className, text) {
+  return '<span class="dot ' + className + '"></span>' + text;
+}
+
+function fmtAge(epochSeconds) {
+  if (!epochSeconds) return "-";
+  const minutes = Math.floor((Date.now() / 1000 - epochSeconds) / 60);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return minutes + " min ago";
+  const hours = Math.floor(minutes / 60);
+  if (hours < 48) return hours + " h ago";
+  return Math.floor(hours / 24) + " d ago";
+}
+
+function fmtUptime(seconds) {
+  if (seconds == null) return "-";
+  if (seconds < 3600) return Math.floor(seconds / 60) + " min";
+  if (seconds < 86400) return (seconds / 3600).toFixed(1) + " h";
+  return (seconds / 86400).toFixed(1) + " d";
+}
+
+function currentDebugMode() {
+  if (heartbeat && typeof heartbeat.debug === "boolean") return heartbeat.debug;
+  if (status && typeof status.debug === "boolean") return status.debug;
+  if (mode) return mode === "debug";
+  return false;
+}
+
+function currentSampling() {
+  if (heartbeat && typeof heartbeat.sampling === "boolean") return heartbeat.sampling;
+  if (status && typeof status.sampling === "boolean") return status.sampling;
+  return null;
+}
+
+function currentBatteryAlert() {
+  if (status && status.battery_alert) return status.battery_alert;
+  if (heartbeat && heartbeat.battery_alert) return heartbeat.battery_alert;
+  return null;
+}
+
+function heartbeatStatus() {
+  return status && status.heartbeat_status ? status.heartbeat_status : null;
+}
+
+function render() {
+  const stale = heartbeat ? (Date.now() / 1000 - heartbeat.ts) > config.staleMinutes * 60 : null;
+  const hbStatus = heartbeatStatus();
+  const probing = hbStatus === "probing";
+  const offline = hbStatus === "offline_confirmed";
+  const state = status ? status.state : null;
+
+  if (offline) {
+    $("stateText").textContent = "Node offline";
+    $("stateDetail").textContent = "The gateway confirmed missed heartbeat probes.";
+  } else if (probing) {
+    $("stateText").textContent = "Heartbeat late";
+    $("stateDetail").textContent = "The gateway is probing before raising an alert.";
+  } else if (stale) {
+    $("stateText").textContent = "Heartbeat stale";
+    $("stateDetail").textContent = "No heartbeat within " + config.staleMinutes + " minutes.";
+  } else if (state === "DELIVERED") {
+    $("stateText").textContent = "Mail waiting";
+    $("stateDetail").textContent = status.reset_pending ? "Reset command is pending over LoRa." : "Collect mail, then mark the box as collected.";
+  } else if (state === "ARMED") {
+    $("stateText").textContent = "Armed";
+    $("stateDetail").textContent = "The mailbox is empty and watching for delivery.";
+  } else {
+    $("stateText").textContent = state || "Waiting for data";
+    $("stateDetail").textContent = "The panel is waiting for retained MQTT state.";
+  }
+
+  $("nodeHealth").innerHTML = offline ? dot("bad", "Offline")
+    : probing ? dot("warn", "Probing")
+    : stale === null ? dot("", "Unknown")
+    : stale ? dot("bad", "Stale") : dot("ok", "OK");
+  $("gateway").innerHTML = gateway === "online" ? dot("ok", "Online")
+    : gateway === "offline" ? dot("bad", "Offline") : dot("", "Unknown");
+  $("heartbeatAge").textContent = heartbeat ? fmtAge(heartbeat.ts) : "-";
+  $("battery").innerHTML = heartbeat && heartbeat.mv > 0
+    ? ((heartbeat.low ? '<span class="low">' : "") + (heartbeat.mv / 1000).toFixed(2) + " V / " + (heartbeat.pct >= 0 ? heartbeat.pct + "%" : "unknown") + (heartbeat.low ? "</span>" : ""))
+    : "-";
+  const alert = currentBatteryAlert();
+  $("batteryAlert").innerHTML = alert === "critical" ? '<span class="low">Critical</span>'
+    : alert === "low" ? '<span class="low">Low</span>'
+    : alert === "invalid" ? '<span class="low">Invalid reading</span>'
+    : alert === "ok" ? "OK" : "-";
+  const debug = currentDebugMode();
+  const sampling = currentSampling();
+  $("mode").textContent = debug ? "Debug" : "Normal";
+  $("sampling").textContent = sampling === null ? "-" : sampling ? "Active" : "Idle";
+  const liveUptime = heartbeat ? heartbeat.uptime + Math.max(0, Math.floor(Date.now() / 1000 - heartbeat.ts)) : null;
+  $("uptime").textContent = fmtUptime(liveUptime);
+  $("event").textContent = status ? "#" + status.last_event_seq : "-";
+  $("modeBtn").textContent = debug ? "Return to normal mode" : "Enable debug mode";
+
+  if (state === "DELIVERED" && !status.reset_pending) {
+    $("resetBtn").disabled = false;
+    $("resetBtn").textContent = "Mark collected";
+  } else if (status && status.reset_pending) {
+    $("resetBtn").disabled = true;
+    $("resetBtn").textContent = "Reset pending";
+  } else {
+    $("resetBtn").disabled = true;
+    $("resetBtn").textContent = "Mark collected";
+  }
+}
+
+function publish(topic, payload, options) {
+  if (!client || !client.connected) return;
+  client.publish(topic, payload, options || { qos: 1 });
+}
+
+async function loadConfig() {
+  const response = await fetch("/api/config");
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "config HTTP " + response.status);
+  config = data;
+  topics = {
+    status: config.topicPrefix + "/status",
+    heartbeat: config.topicPrefix + "/heartbeat",
+    gateway: config.topicPrefix + "/gateway",
+    reset: config.topicPrefix + "/reset",
+    command: config.topicPrefix + "/command",
+    mode: config.topicPrefix + "/mode",
+  };
+}
+
+function connectMqtt() {
+  $("connection").textContent = "Connecting";
+  client = mqtt.connect(config.mqttUrl, {
+    username: config.mqttUsername,
+    password: config.mqttPassword,
+    clientId: "panel-" + Math.random().toString(16).slice(2, 10),
+    keepalive: 30,
+    reconnectPeriod: 4000,
+    clean: true,
+  });
+  client.on("connect", () => {
+    $("connection").textContent = "Connected";
+    client.subscribe(config.topicPrefix + "/#");
+  });
+  client.on("reconnect", () => { $("connection").textContent = "Reconnecting"; });
+  client.on("close", () => { $("connection").textContent = "Disconnected"; });
+  client.on("error", (error) => { $("connection").textContent = "MQTT error: " + error.message; });
+  client.on("message", (topic, payload) => {
+    const text = payload.toString();
+    try {
+      if (topic === topics.status) status = JSON.parse(text);
+      else if (topic === topics.heartbeat) heartbeat = JSON.parse(text);
+      else if (topic === topics.gateway) gateway = text;
+      else if (topic === topics.mode) mode = text.trim();
+    } catch (error) {
+      console.warn("bad payload", topic, text, error);
+    }
+    render();
+  });
+}
+
+async function refreshMaintenance() {
+  try {
+    const response = await fetch("/api/maintenance");
+    if (!response.ok) throw new Error(String(response.status));
+    const data = await response.json();
+    $("alarm").textContent = data.status || "-";
+    $("maintBtn").disabled = data.status === "paused";
+  } catch {
+    $("alarm").textContent = "not configured";
+    $("maintBtn").disabled = true;
+  }
+}
+
+$("resetBtn").addEventListener("click", () => {
+  if (!confirm("Mark the mailbox as collected?")) return;
+  publish(topics.reset, "collected");
+});
+
+$("hbBtn").addEventListener("click", () => publish(topics.command, "hb"));
+
+$("modeBtn").addEventListener("click", () => {
+  publish(topics.mode, currentDebugMode() ? "normal" : "debug", { qos: 1, retain: true });
+});
+
+$("testBtn").addEventListener("click", () => {
+  if (!confirm("Send a full test delivery event?")) return;
+  publish(topics.command, "test");
+});
+
+$("maintBtn").addEventListener("click", async () => {
+  if (!confirm("Pause offline alerts for maintenance?")) return;
+  const response = await fetch("/api/maintenance", { method: "POST" });
+  if (!response.ok) alert("Maintenance request failed.");
+  await refreshMaintenance();
+});
+
+(async function main() {
+  try {
+    await loadConfig();
+    connectMqtt();
+    await refreshMaintenance();
+    render();
+    setInterval(render, 30000);
+    setInterval(refreshMaintenance, 120000);
+  } catch (error) {
+    $("connection").textContent = "Config error";
+    $("stateText").textContent = "Panel not configured";
+    $("stateDetail").textContent = error.message;
+  }
+})();
+</script>
+</body>
+</html>
