@@ -36,7 +36,9 @@ static const uint8_t LORA_MAIL_KEY[32] = {
 #define HEARTBEAT_PROBE_GRACE_SECS 20
 #define HEARTBEAT_PROBE_INTERVAL_SECS 30
 #define HEARTBEAT_PROBE_MAX_ATTEMPTS 3
-#define HEARTBEAT_OFFLINE_ALERT_REPEAT_SECS 3600UL
+// Panel marks sustained loss as offline after 30 minutes. Configure
+// Healthchecks separately for the only availability email escalation.
+#define HEARTBEAT_OFFLINE_AFTER_SECS 1800UL
 #define EVENT_MAX_RETRIES 5
 #define ACK_WINDOW_MS 4000
 

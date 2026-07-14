@@ -37,6 +37,12 @@ Use retained MQTT topics to recover the panel state after reload. The gateway pu
 
 Use a separate MQTT username/password for the panel. Keep the panel account limited to the mailbox topic prefix where your broker supports ACLs.
 
+## Availability alert policy
+
+The normal mailbox heartbeat is every 5 minutes. A missing heartbeat first appears as `probing` in the MQTT/panel state, and becomes `offline_confirmed` in the panel only after `HEARTBEAT_OFFLINE_AFTER_SECS` (30 minutes by default). The firmware deliberately does not POST heartbeat loss to Make, so transient LoRa loss cannot consume webhook operations or send repeated email.
+
+Configure Healthchecks as the single availability-email path. For the default 5-minute heartbeat, use a 55-minute Healthchecks grace period (a 60-minute total alert window). This preserves delivery and battery email alerts while suppressing normal long-range LoRa flaps.
+
 ## Secret Rotation
 
 Rotate these independently:

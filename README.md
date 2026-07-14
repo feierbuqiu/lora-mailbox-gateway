@@ -9,7 +9,7 @@ An open-source mailbox notification system for two Seeed XIAO ESP32S3 + Wio-SX12
 - Retained MQTT topics for panel state, heartbeat, gateway presence, reset, command, and mode.
 - Cloudflare Pages panel gated by WebAuthn/passkeys.
 - Healthchecks integration for offline monitoring and maintenance pause.
-- Make.com-compatible webhook payload for email or other automations.
+- Make.com-compatible webhook payload for actionable delivery and battery alerts; Healthchecks owns sustained-link email escalation.
 - Local helper scripts for EMQX, Meshtastic legacy workflows, MQTT tests, and bench triggers.
 
 ## Repository Layout

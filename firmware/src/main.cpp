@@ -37,8 +37,9 @@
 #ifndef HEARTBEAT_PROBE_MAX_ATTEMPTS
 #define HEARTBEAT_PROBE_MAX_ATTEMPTS 3
 #endif
-#ifndef HEARTBEAT_OFFLINE_ALERT_REPEAT_SECS
-#define HEARTBEAT_OFFLINE_ALERT_REPEAT_SECS 3600UL
+#ifndef HEARTBEAT_OFFLINE_AFTER_SECS
+// Keep link flaps in MQTT/panel state. Healthchecks owns the email escalation.
+#define HEARTBEAT_OFFLINE_AFTER_SECS 1800UL
 #endif
 #ifndef BATTERY_PRESENT_MIN_MV
 #define BATTERY_PRESENT_MIN_MV 2500
@@ -476,7 +477,6 @@ static bool heartbeatProbeActive = false;
 static uint8_t heartbeatProbeCount = 0;
 static unsigned long nextHeartbeatProbeAt = 0;
 static bool heartbeatOfflineAlertActive = false;
-static unsigned long lastHeartbeatOfflineAlertAt = 0;
 static int batteryAlertLevel = 0;
 static unsigned long lastLowBatteryAlertAt = 0;
 static bool batteryInvalidAlertActive = false;
@@ -816,26 +816,14 @@ static void sendHeartbeatProbe() {
   publishStatus();
 }
 
-static void maybeSendHeartbeatOfflineAlert() {
-  const unsigned long now = millis();
-  const bool repeatDue = lastHeartbeatOfflineAlertAt == 0 ||
-                         now - lastHeartbeatOfflineAlertAt >= HEARTBEAT_OFFLINE_ALERT_REPEAT_SECS * 1000UL;
-  if (heartbeatOfflineAlertActive && !repeatDue) {
+static void markHeartbeatOffline() {
+  if (heartbeatOfflineAlertActive) {
     return;
   }
-
-  String body = lastDebugMode ? "Mailbox node heartbeat is offline after active probes.\n"
-                              : "Mailbox node heartbeat is offline after missed heartbeat retries.\n";
-  body += "heartbeat_age_s=" + String(heartbeatAgeSecs()) + "\n";
-  body += "probe_count=" + String(heartbeatProbeCount) + "\n";
-  body += "expected_interval_s=" + String(expectedHeartbeatMs() / 1000UL) + "\n";
-  body += "battery_mv=" + String(lastBatteryMv) + "\n";
-  body += "battery_pct=" + String(lastBatteryPct);
-  if (sendWebhook("Mailbox: heartbeat offline confirmed", body, 0)) {
-    heartbeatOfflineAlertActive = true;
-    lastHeartbeatOfflineAlertAt = now;
-    publishStatus();
-  }
+  heartbeatOfflineAlertActive = true;
+  Serial.printf("Heartbeat offline in panel: age=%lus probes=%u; Healthchecks owns email escalation\n",
+                heartbeatAgeSecs(), heartbeatProbeCount);
+  publishStatus();
 }
 
 static void checkHeartbeatTimeout() {
@@ -844,6 +832,8 @@ static void checkHeartbeatTimeout() {
   }
   const unsigned long now = millis();
   const unsigned long staleAfter = expectedHeartbeatMs() + HEARTBEAT_PROBE_GRACE_SECS * 1000UL;
+  const unsigned long configuredOfflineAfter = HEARTBEAT_OFFLINE_AFTER_SECS * 1000UL;
+  const unsigned long offlineAfter = configuredOfflineAfter > staleAfter ? configuredOfflineAfter : staleAfter;
   if (now - lastHeartbeatAt <= staleAfter) {
     if (heartbeatProbeActive || heartbeatOfflineAlertActive) {
       heartbeatProbeActive = false;
@@ -863,16 +853,19 @@ static void checkHeartbeatTimeout() {
     publishStatus();
   }
 
-  if (heartbeatProbeCount < HEARTBEAT_PROBE_MAX_ATTEMPTS) {
-    if (nextHeartbeatProbeAt == 0 || static_cast<long>(now - nextHeartbeatProbeAt) >= 0) {
+  // The mail node sleeps between its own heartbeats in normal mode. A single
+  // missed interval is expected with a long, obstructed LoRa path, so it is
+  // panel-only until the sustained-offline threshold. Healthchecks is the
+  // single email escalation path and has a longer independent grace window.
+  if (now - lastHeartbeatAt < offlineAfter) {
+    if (heartbeatProbeCount < HEARTBEAT_PROBE_MAX_ATTEMPTS &&
+        (nextHeartbeatProbeAt == 0 || static_cast<long>(now - nextHeartbeatProbeAt) >= 0)) {
       sendHeartbeatProbe();
     }
     return;
   }
 
-  if (nextHeartbeatProbeAt == 0 || static_cast<long>(now - nextHeartbeatProbeAt) >= 0) {
-    maybeSendHeartbeatOfflineAlert();
-  }
+  markHeartbeatOffline();
 }
 
 static void onMqttMessage(char *topic, byte *payload, unsigned int length) {

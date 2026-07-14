@@ -16,8 +16,9 @@ flowchart LR
 `home` is the always-powered gateway:
 
 - receives encrypted LoRa packets
-- posts delivery and health alerts to a webhook
-- pings Healthchecks when the mailbox node heartbeat is fresh
+- posts delivery and battery alerts to a webhook
+- keeps late/offline heartbeat state in MQTT for the panel, without webhook email
+- pings Healthchecks when the mailbox node heartbeat is fresh; Healthchecks is the single sustained-link email escalation path
 - publishes retained MQTT state
 - accepts reset/debug/test commands from MQTT and sends LoRa downlinks
 
