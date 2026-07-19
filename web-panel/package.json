@@ -1,6 +1,6 @@
 {
   "name": "@feierbuqiu/lora-mailbox-panel",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Passkey-gated Cloudflare Pages Worker and MQTT status panel for the LoRa mailbox gateway, including calibrated battery telemetry compatibility.",
   "type": "module",
   "main": "src/worker.js",

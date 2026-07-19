@@ -29,11 +29,11 @@ Private credentials, operational exports, logs, photos, and historical snapshots
 
 ## Published Artifacts
 
-- Latest public release: [v0.2.0](https://github.com/feierbuqiu/lora-mailbox-gateway/releases/tag/v0.2.0)
-- GitHub Packages npm package: `@feierbuqiu/lora-mailbox-panel@0.2.0`
+- Latest public release: [v0.2.1](https://github.com/feierbuqiu/lora-mailbox-gateway/releases/tag/v0.2.1)
+- GitHub Packages npm package: `@feierbuqiu/lora-mailbox-panel@0.2.1`
 - Signed source tags:
-  - `v0.2.0` for the current repository release
-  - `lora-mailbox-panel-v0.2.0` for the current panel package publication
+  - `v0.2.1` for the current repository release
+  - `lora-mailbox-panel-v0.2.1` for the current panel package publication
 
 The release includes example firmware builds, a built Cloudflare panel bundle, the deployable cloud battery monitor source, and `SHA256SUMS.txt`. Example firmware binaries are for inspection and smoke testing only; production firmware should be rebuilt locally with your own ignored configuration.
 
@@ -47,7 +47,7 @@ Choose the path that matches your goal:
 
 ### Build From Source
 
-1. Install PlatformIO, Node.js 20+, and Python 3.11+.
+1. Install PlatformIO, Node.js 22+, and Python 3.11+.
 2. Copy `.env.example` to `.env`.
 3. Copy `firmware/include/lora_mail_config.example.h` to `firmware/include/lora_mail_config.h`.
 4. Fill WiFi, LoRa key, webhook, MQTT, and optional Healthchecks values.
@@ -76,7 +76,7 @@ The Cloudflare panel is published separately through GitHub Packages:
 @feierbuqiu/lora-mailbox-panel
 ```
 
-The current package version is `0.2.0`. It remains compatible with raw firmware telemetry and with the calibrated retained payloads produced by `cloud-battery-monitor/`.
+The current package version is `0.2.1`. It remains compatible with raw firmware telemetry and with the calibrated retained payloads produced by `cloud-battery-monitor/`.
 
 Use it when you want to inspect or rebuild the panel without cloning the full firmware repository. GitHub Packages requires npm authentication, so configure the `@feierbuqiu` scope for `https://npm.pkg.github.com` before installing:
 

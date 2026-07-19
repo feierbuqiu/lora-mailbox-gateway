@@ -1,6 +1,6 @@
 {
   "name": "mailbox-cloud-battery-monitor",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Cloudflare Worker that calibrates, filters, republishes, and alerts on LoRa mailbox battery telemetry without reflashing an installed node.",
   "type": "module",

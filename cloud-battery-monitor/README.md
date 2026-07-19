@@ -1,5 +1,7 @@
 # Cloud Battery Monitor
 
+Requires Node.js 22 or newer for the pinned Wrangler version.
+
 This Worker corrects the permanently installed mailbox node without changing or reflashing its firmware.
 
 Every minute it:
