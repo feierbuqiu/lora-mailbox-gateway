@@ -27,6 +27,7 @@ logs/
 *.crt
 
 # Build outputs and dependency caches
+node_modules/
 firmware/.pio/
 firmware/.vscode/
 web-panel/node_modules/

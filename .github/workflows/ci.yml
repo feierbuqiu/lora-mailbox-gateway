@@ -9,8 +9,8 @@ jobs:
     name: Firmware
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install PlatformIO
@@ -24,8 +24,8 @@ jobs:
     name: Web Panel
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
@@ -36,3 +36,26 @@ jobs:
       - name: Build panel
         working-directory: web-panel
         run: npm run build
+      - name: Test passkey registration options
+        working-directory: web-panel
+        run: npm test
+
+  cloud-battery-monitor:
+    name: Cloud Battery Monitor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: cloud-battery-monitor/package-lock.json
+      - name: Install dependencies
+        working-directory: cloud-battery-monitor
+        run: npm ci
+      - name: Run unit tests
+        working-directory: cloud-battery-monitor
+        run: npm test
+      - name: Validate Worker bundle
+        working-directory: cloud-battery-monitor
+        run: npx wrangler deploy --dry-run

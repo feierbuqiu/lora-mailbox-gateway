@@ -151,7 +151,7 @@ input { width:100%; margin:12px 0; padding:10px; border-radius:6px; border:1px s
     <button id="regBtn" type="button">Register passkey</button>
   </details>` : ""}
 </main>
-<script src="https://unpkg.com/@simplewebauthn/browser@11/dist/bundle/index.umd.min.js"></script>
+<script src="https://unpkg.com/@simplewebauthn/browser@13.3.0/dist/bundle/index.umd.min.js"></script>
 <script>
 "use strict";
 const msg = (text) => { document.getElementById("msg").textContent = text; };

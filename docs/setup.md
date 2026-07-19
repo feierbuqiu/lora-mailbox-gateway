@@ -6,7 +6,7 @@ This guide provisions a reproducible open-source deployment without committing c
 
 There are three supported entry points:
 
-- **Release artifacts**: use [v0.1.0](https://github.com/feierbuqiu/lora-mailbox-gateway/releases/tag/v0.1.0) when you want a pinned public baseline with checksums.
+- **Release artifacts**: use [v0.2.0](https://github.com/feierbuqiu/lora-mailbox-gateway/releases/tag/v0.2.0) when you want the current pinned public baseline with checksums.
 - **Source checkout**: clone the repository when provisioning real hardware or changing firmware/panel behavior.
 - **Panel package**: install `@feierbuqiu/lora-mailbox-panel` from GitHub Packages when you only need the Cloudflare panel source.
 
@@ -31,17 +31,19 @@ Download the latest public release from:
 https://github.com/feierbuqiu/lora-mailbox-gateway/releases
 ```
 
-For `v0.1.0`, the release contains:
+For `v0.2.0`, the release contains:
 
-- `lora-mailbox-gateway-v0.1.0-example-firmware.zip`
-- `lora-mailbox-gateway-v0.1.0-web-panel.zip`
+- `lora-mailbox-gateway-v0.2.0-example-firmware.zip`
+- `lora-mailbox-gateway-v0.2.0-web-panel.zip`
+- `lora-mailbox-gateway-v0.2.0-cloud-battery-monitor.zip`
 - `SHA256SUMS.txt`
 
 Verify downloaded artifacts before inspecting or deploying them:
 
 ```powershell
-Get-FileHash .\lora-mailbox-gateway-v0.1.0-web-panel.zip -Algorithm SHA256
-Get-FileHash .\lora-mailbox-gateway-v0.1.0-example-firmware.zip -Algorithm SHA256
+Get-FileHash .\lora-mailbox-gateway-v0.2.0-web-panel.zip -Algorithm SHA256
+Get-FileHash .\lora-mailbox-gateway-v0.2.0-example-firmware.zip -Algorithm SHA256
+Get-FileHash .\lora-mailbox-gateway-v0.2.0-cloud-battery-monitor.zip -Algorithm SHA256
 Get-Content .\SHA256SUMS.txt
 ```
 
@@ -150,10 +152,43 @@ Configure the GitHub Packages scope:
 Then install it in a separate workspace if you only need the panel:
 
 ```powershell
-npm install @feierbuqiu/lora-mailbox-panel
+npm install @feierbuqiu/lora-mailbox-panel@0.2.0
 ```
 
 GitHub Packages requires an authenticated npm client, even for public packages. Keep npm tokens in your user-level npm config or CI secrets, not in this repository.
+
+## Cloud Battery Monitor
+
+The optional scheduled Worker corrects battery telemetry without changing mailbox-node firmware. Use it only when you have a trustworthy meter comparison for the installed battery path.
+
+```powershell
+cd cloud-battery-monitor
+npm.cmd ci
+npm.cmd test
+npm.cmd exec -- wrangler deploy --dry-run
+npm.cmd run deploy
+```
+
+Configure these Worker secrets before relying on scheduled runs:
+
+```text
+MQTT_WSS_URL             wss://<mqtt-host>:8084/mqtt
+MQTT_USERNAME            MQTT account permitted to read/write mailbox retained topics
+MQTT_PASSWORD            matching MQTT password
+MAKE_WEBHOOK_URL         Make-compatible HTTPS endpoint for calibrated alerts
+MONITOR_ADMIN_TOKEN      random bearer token for the manual POST /run endpoint
+```
+
+Set the following deployment variables from measured behavior:
+
+```text
+BATTERY_OFFSET_MV        actual meter millivolts minus raw reported millivolts
+BATTERY_EMPTY_MV         default 3300
+BATTERY_FULL_MV          default 4200
+BATTERY_MAX_MV           default 4220
+```
+
+The repository default for `BATTERY_OFFSET_MV` is `0`. A live installation must supply its own offset; a value measured on one ADC/divider combination is not portable to another. After deployment, confirm `/health`, run one authenticated `POST /run`, inspect retained `mailbox/battery-cloud-state`, and verify that the panel shows the calibrated voltage and linear percentage.
 
 ## Make/Webhook Contract
 

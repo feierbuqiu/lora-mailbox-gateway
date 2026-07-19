@@ -1,6 +1,6 @@
 # LoRa Mailbox Gateway
 
-An open-source mailbox notification system for two Seeed XIAO ESP32S3 + Wio-SX1262 boards. A low-power mailbox node detects delivery, sends an encrypted LoRa packet to a home gateway, and the gateway fans out to email/webhook alerts, Healthchecks monitoring, MQTT state, and an authenticated Cloudflare Pages status panel.
+An open-source mailbox notification system for two Seeed XIAO ESP32S3 + Wio-SX1262 boards. A low-power mailbox node detects delivery, sends an encrypted LoRa packet to a home gateway, and the gateway fans out to email/webhook alerts, Healthchecks monitoring, MQTT state, and an authenticated Cloudflare Pages status panel. An optional Cloudflare Worker corrects and smooths battery telemetry for permanently installed nodes without requiring a firmware reflash.
 
 ## Features
 
@@ -8,6 +8,7 @@ An open-source mailbox notification system for two Seeed XIAO ESP32S3 + Wio-SX12
 - Private LoRa packets with AES-256-CTR payload encryption and HMAC-SHA256 authentication.
 - Retained MQTT topics for panel state, heartbeat, gateway presence, reset, command, and mode.
 - Cloudflare Pages panel gated by WebAuthn/passkeys.
+- No-reflash cloud battery calibration with retained MQTT state, five-sample median filtering, linear percentage calculation, and calibrated low/critical alerts.
 - Healthchecks integration for offline monitoring and maintenance pause.
 - Make.com-compatible webhook payload for actionable delivery and battery alerts; Healthchecks owns sustained-link email escalation.
 - Local helper scripts for EMQX, Meshtastic legacy workflows, MQTT tests, and bench triggers.
@@ -18,6 +19,7 @@ An open-source mailbox notification system for two Seeed XIAO ESP32S3 + Wio-SX12
 firmware/              PlatformIO firmware for home/mail/hello environments
 tools/                 Local setup, test, and legacy bridge utilities
 web-panel/             Cloudflare Pages Worker and static panel source
+cloud-battery-monitor/ Scheduled Cloudflare Worker for battery calibration and alerts
 docs/                  Architecture, setup, hardware, and operations guides
 .github/workflows/     CI and package publication workflows
 .env.example           Local environment template
@@ -27,13 +29,13 @@ Private credentials, operational exports, logs, photos, and historical snapshots
 
 ## Published Artifacts
 
-- First public release: [v0.1.0](https://github.com/feierbuqiu/lora-mailbox-gateway/releases/tag/v0.1.0)
-- GitHub Packages npm package: `@feierbuqiu/lora-mailbox-panel@0.1.0`
+- Latest public release: [v0.2.0](https://github.com/feierbuqiu/lora-mailbox-gateway/releases/tag/v0.2.0)
+- GitHub Packages npm package: `@feierbuqiu/lora-mailbox-panel@0.2.0`
 - Signed source tags:
-  - `v0.1.0` for the first full repository release
-  - `lora-mailbox-panel-v0.1.0` for the first panel package publication
+  - `v0.2.0` for the current repository release
+  - `lora-mailbox-panel-v0.2.0` for the current panel package publication
 
-The release includes a Cloudflare panel build, example firmware builds, and `SHA256SUMS.txt`. Example firmware binaries are for inspection and smoke testing only; production firmware should be rebuilt locally with your own ignored configuration.
+The release includes example firmware builds, a built Cloudflare panel bundle, the deployable cloud battery monitor source, and `SHA256SUMS.txt`. Example firmware binaries are for inspection and smoke testing only; production firmware should be rebuilt locally with your own ignored configuration.
 
 ## Quick Start
 
@@ -74,11 +76,19 @@ The Cloudflare panel is published separately through GitHub Packages:
 @feierbuqiu/lora-mailbox-panel
 ```
 
+The current package version is `0.2.0`. It remains compatible with raw firmware telemetry and with the calibrated retained payloads produced by `cloud-battery-monitor/`.
+
 Use it when you want to inspect or rebuild the panel without cloning the full firmware repository. GitHub Packages requires npm authentication, so configure the `@feierbuqiu` scope for `https://npm.pkg.github.com` before installing:
 
 ```ini
 @feierbuqiu:registry=https://npm.pkg.github.com
 ```
+
+## Cloud Battery Monitor
+
+`cloud-battery-monitor/` is an optional scheduled Worker for installations where retrieving the mailbox node for a firmware update is impractical. It reads retained heartbeat/status messages over MQTT WSS, applies a deployment-specific voltage offset, keeps the latest five distinct samples, publishes a 10 mV-rounded median, and recalculates percentage linearly from 3.3 V to 4.2 V.
+
+The repository default offset is `0 mV`. Set `BATTERY_OFFSET_MV` in the Cloudflare deployment from a real meter comparison; do not copy another installation's calibration value. See [cloud-battery-monitor/README.md](cloud-battery-monitor/README.md) for deployment, secrets, alert behavior, and verification.
 
 ## Security Notes
 

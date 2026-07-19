@@ -16,9 +16,14 @@ Copy-Item firmware/include/lora_mail_config.example.h firmware/include/lora_mail
 platformio run -d firmware -e home
 platformio run -d firmware -e mail
 cd web-panel
-npm install
-npm run build
-npm run pack:inspect
+npm.cmd install
+npm.cmd run build
+npm.cmd run test
+npm.cmd run pack:inspect
+cd ..\cloud-battery-monitor
+npm.cmd ci
+npm.cmd test
+npm.cmd exec -- wrangler deploy --dry-run
 ```
 
 Before opening a PR, run a secret scan over tracked files or at least:
@@ -36,4 +41,5 @@ Maintainers should keep public releases and packages reproducible:
 - Build firmware from `firmware/include/lora_mail_config.example.h` when producing public example artifacts.
 - Keep production firmware binaries and private Cloudflare/MQTT values out of release assets.
 - Publish the web panel package through the `Publish Web Panel Package` workflow so package publication has an auditable GitHub Actions run.
+- Keep deployment-specific battery offsets and live Worker secrets out of the repository; the public cloud monitor default must remain neutral.
 - Update README and docs whenever release assets, package names, installation steps, or runtime variables change.

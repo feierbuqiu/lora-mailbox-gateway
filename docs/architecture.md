@@ -9,6 +9,8 @@ flowchart LR
   home -->|"MQTT/TLS"| mqtt["MQTT broker\nstatus + commands"]
   panel["Cloudflare Pages panel\nPasskey auth"] -->|"WSS MQTT"| mqtt
   panel -->|"authenticated API"| healthchecks
+  battery["Scheduled Cloudflare Worker\nbattery calibration + alerts"] <-->|"WSS MQTT"| mqtt
+  battery -->|"HTTPS POST when due"| webhook
 ```
 
 ## Firmware Roles
@@ -51,6 +53,15 @@ The default panel topic prefix is `mailbox`.
 | `mailbox/reset` | no | panel -> home | Mark collected and reset the mailbox node |
 | `mailbox/command` | no | panel -> home | `hb`, `test`, `debug`, `normal` |
 | `mailbox/mode` | yes | panel -> home | Retained debug/normal mode request |
+| `mailbox/battery-cloud-state` | yes | cloud monitor -> cloud monitor | Distinct voltage samples, filter state, alert level, and cooldown state |
+
+## Cloud Battery Correction
+
+The optional `cloud-battery-monitor/` Worker is deliberately outside the embedded firmware path. It is intended for installed mailbox nodes that cannot be retrieved and reflashed economically.
+
+Once per minute, the Worker reads retained heartbeat, status, and battery-cloud-state topics over MQTT WSS. It only processes a new raw heartbeat timestamp, applies the deployment's `BATTERY_OFFSET_MV`, keeps the latest five corrected samples, takes their median, rounds the panel value to 10 mV, and calculates percentage linearly with 3.3 V as 0% and 4.2 V as 100%. It then republishes calibrated heartbeat and status payloads on the existing retained topics, so compatible panels need no separate deployment.
+
+Published payloads carry `calibrated`, `raw_mv`, calibration metadata, and filter sample count fields. The Worker ignores its own calibrated heartbeat to prevent a publish loop. Low and critical notifications use hysteresis plus a 24-hour repeat cooldown; retained MQTT state removes the need for a separate database binding.
 
 ## Panel Security
 
@@ -65,5 +76,6 @@ The project is distributed through three public surfaces:
 - The Git repository for source, documentation, CI, issues, and security advisories.
 - GitHub Releases for pinned, checksumed release artifacts such as example firmware builds and web panel bundles.
 - GitHub Packages for the reusable Cloudflare panel package `@feierbuqiu/lora-mailbox-panel`.
+- Release source bundles for the scheduled cloud battery monitor, which stays deployment-configured rather than embedding a site-specific calibration.
 
 Firmware remains source-first because production binaries depend on private WiFi, LoRa, webhook, MQTT, and Healthchecks values. The published firmware archive is an example build for inspection and smoke testing, not a credential-bearing deployment image.
