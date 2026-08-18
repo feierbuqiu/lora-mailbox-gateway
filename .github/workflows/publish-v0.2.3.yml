@@ -61,6 +61,7 @@ jobs:
       - name: Fetch and verify the unchanged example firmware
         shell: bash
         run: |
+          set -euo pipefail
           curl --fail --location --retry 3 \
             --output /tmp/lora-mailbox-gateway-v0.2.1-example-firmware.zip \
             https://github.com/feierbuqiu/lora-mailbox-gateway/releases/download/v0.2.1/lora-mailbox-gateway-v0.2.1-example-firmware.zip
@@ -69,7 +70,12 @@ jobs:
             '/tmp/lora-mailbox-gateway-v0.2.1-example-firmware.zip' \
             | sha256sum --check
           mkdir baseline-firmware
-          unzip -q /tmp/lora-mailbox-gateway-v0.2.1-example-firmware.zip -d baseline-firmware
+          python -m zipfile --extract /tmp/lora-mailbox-gateway-v0.2.1-example-firmware.zip baseline-firmware
+          for environment in home mail hello; do
+            for artifact in bootloader.bin firmware.bin firmware.elf partitions.bin; do
+              test -f "baseline-firmware/${environment}/${artifact}"
+            done
+          done
 
       - name: Build and verify web panel
         working-directory: web-panel
