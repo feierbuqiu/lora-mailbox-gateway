@@ -29,11 +29,11 @@ Private credentials, operational exports, logs, photos, and historical snapshots
 
 ## Published Artifacts
 
-- Latest public release: [v0.2.2](https://github.com/feierbuqiu/lora-mailbox-gateway/releases/tag/v0.2.2)
-- GitHub Packages npm package: `@feierbuqiu/lora-mailbox-panel@0.2.2`
+- Latest public release: [v0.2.3](https://github.com/feierbuqiu/lora-mailbox-gateway/releases/tag/v0.2.3)
+- GitHub Packages npm package: `@feierbuqiu/lora-mailbox-panel@0.2.3`
 - Signed source tags:
-  - `v0.2.2` for the current repository release
-  - `lora-mailbox-panel-v0.2.2` for the current panel package publication
+  - `v0.2.3` for the current repository release
+  - `lora-mailbox-panel-v0.2.3` for the current panel package publication
 
 The release includes example firmware builds, a built Cloudflare panel bundle, the deployable cloud battery monitor source, and `SHA256SUMS.txt`. Example firmware binaries are for inspection and smoke testing only; production firmware should be rebuilt locally with your own ignored configuration.
 
@@ -76,7 +76,7 @@ The Cloudflare panel is published separately through GitHub Packages:
 @feierbuqiu/lora-mailbox-panel
 ```
 
-The current package version is `0.2.2`. It keeps raw gateway state separate from calibrated battery state and prefers the stable calibrated retained topics produced by `cloud-battery-monitor/`.
+The current package version is `0.2.3`. It keeps raw gateway state separate from calibrated battery state, prefers the stable calibrated retained topics produced by `cloud-battery-monitor/`, and presents the complete login and status experience in Simplified Chinese.
 
 Use it when you want to inspect or rebuild the panel without cloning the full firmware repository. GitHub Packages requires npm authentication, so configure the `@feierbuqiu` scope for `https://npm.pkg.github.com` before installing:
 

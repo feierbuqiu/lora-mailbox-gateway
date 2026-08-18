@@ -118,17 +118,17 @@ function extractRegistrationCredential(info) {
 
 function loginHtml(showRegistration) {
   return `<!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Mailbox Panel Login</title>
+<title>邮箱监控登录</title>
 <style>
 :root { --bg:#f5f6f8; --surface:#fff; --text:#1a1d21; --muted:#667085; --border:#d9dee7; --primary:#2563eb; }
 @media (prefers-color-scheme: dark) { :root { --bg:#111418; --surface:#1c2128; --text:#e6e8ea; --muted:#9aa3ad; --border:#303846; } }
 * { box-sizing:border-box; }
-body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
 main { width:min(420px, 92vw); background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:28px; }
 h1 { font-size:20px; margin:0 0 6px; }
 p { margin:0 0 22px; color:var(--muted); font-size:14px; }
@@ -141,14 +141,14 @@ input { width:100%; margin:12px 0; padding:10px; border-radius:6px; border:1px s
 </head>
 <body>
 <main>
-  <h1>Mailbox Panel</h1>
-  <p>Use a registered passkey to access the live mailbox controls.</p>
-  <button id="loginBtn">Sign in with passkey</button>
+  <h1>邮箱监控</h1>
+  <p>请使用已注册的通行密钥访问实时邮箱状态与控制功能。</p>
+  <button id="loginBtn">使用通行密钥登录</button>
   <div id="msg"></div>
   ${showRegistration ? `<details>
-    <summary>Register this device</summary>
-    <input id="setupToken" type="password" autocomplete="one-time-code" placeholder="Setup token">
-    <button id="regBtn" type="button">Register passkey</button>
+    <summary>在此设备上注册</summary>
+    <input id="setupToken" type="password" autocomplete="one-time-code" placeholder="初始化令牌">
+    <button id="regBtn" type="button">注册通行密钥</button>
   </details>` : ""}
 </main>
 <script src="https://unpkg.com/@simplewebauthn/browser@13.3.0/dist/bundle/index.umd.min.js"></script>
@@ -163,26 +163,26 @@ async function post(url, body) {
 }
 document.getElementById("loginBtn").addEventListener("click", async () => {
   try {
-    msg("Preparing passkey challenge...");
+    msg("正在准备通行密钥验证…");
     const options = await post("/auth/login-options");
     const resp = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options });
     await post("/auth/login-verify", resp);
     location.href = "/";
   } catch (error) {
-    msg("Sign-in failed: " + error.message);
+    msg("登录失败：" + error.message);
   }
 });
 const regBtn = document.getElementById("regBtn");
 if (regBtn) regBtn.addEventListener("click", async () => {
   try {
     const token = document.getElementById("setupToken").value.trim();
-    if (!token) { msg("Enter the setup token first."); return; }
+    if (!token) { msg("请先输入初始化令牌。"); return; }
     const options = await post("/auth/reg-options", { token });
     const resp = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: options });
     await post("/auth/reg-verify", { token, resp });
-    msg("Passkey registered. You can sign in now.");
+    msg("通行密钥注册成功，现在可以登录。");
   } catch (error) {
-    msg("Registration failed: " + error.message);
+    msg("注册失败：" + error.message);
   }
 });
 </script>
@@ -193,7 +193,7 @@ if (regBtn) regBtn.addEventListener("click", async () => {
 function panelConfig(env) {
   const missing = ["PANEL_MQTT_URL", "PANEL_MQTT_USERNAME", "PANEL_MQTT_PASSWORD"].filter((name) => !env[name]);
   if (missing.length) {
-    return { error: `missing environment variables: ${missing.join(", ")}` };
+    return { error: `缺少环境变量：${missing.join(", ")}` };
   }
   const topicPrefix = (env.PANEL_TOPIC_PREFIX || "mailbox").replace(/\/+$/, "");
   return {
@@ -207,22 +207,22 @@ function panelConfig(env) {
 
 async function handleMaintenance(request, env) {
   if (!env.HC_API_KEY || !env.HC_CHECK_UUID) {
-    return json({ error: "healthchecks is not configured" }, 500);
+    return json({ error: "尚未配置离线监控服务" }, 500);
   }
   const headers = { "X-Api-Key": env.HC_API_KEY };
   const base = "https://healthchecks.io/api/v3/checks/" + env.HC_CHECK_UUID;
   if (request.method === "GET") {
     const response = await fetch(base, { headers });
-    if (!response.ok) return json({ error: "healthchecks API " + response.status }, 502);
+    if (!response.ok) return json({ error: "离线监控服务请求失败：" + response.status }, 502);
     const check = await response.json();
     return json({ status: check.status, last_ping: check.last_ping });
   }
   if (request.method === "POST") {
     const response = await fetch(base + "/pause", { method: "POST", headers });
-    if (!response.ok) return json({ error: "healthchecks API " + response.status }, 502);
+    if (!response.ok) return json({ error: "离线监控服务请求失败：" + response.status }, 502);
     return json({ ok: true, status: "paused" });
   }
-  return json({ error: "method not allowed" }, 405);
+  return json({ error: "不支持此请求方法" }, 405);
 }
 
 export default {
@@ -243,17 +243,17 @@ export default {
 
     if (url.pathname.startsWith("/auth/") && request.method === "POST") {
       if (!(await rateLimitOk(env, request, 15))) {
-        return json({ error: "too many requests" }, 429, { "Retry-After": "600" });
+        return json({ error: "请求过于频繁，请十分钟后重试" }, 429, { "Retry-After": "600" });
       }
     }
 
     if (url.pathname === "/auth/reg-options" && request.method === "POST") {
-      if (!env.SETUP_TOKEN) return json({ error: "not found" }, 404);
+      if (!env.SETUP_TOKEN) return json({ error: "未找到注册入口" }, 404);
       const body = await request.json().catch(() => ({}));
-      if (body.token !== env.SETUP_TOKEN) return json({ error: "invalid setup token" }, 403);
+      if (body.token !== env.SETUP_TOKEN) return json({ error: "初始化令牌无效" }, 403);
       const existing = await loadCredentials(env);
       const options = await generateRegistrationOptions({
-        rpName: "Mailbox Panel",
+        rpName: "邮箱监控面板",
         rpID,
         userName: "mailbox-owner",
         attestationType: "none",
@@ -265,11 +265,11 @@ export default {
     }
 
     if (url.pathname === "/auth/reg-verify" && request.method === "POST") {
-      if (!env.SETUP_TOKEN) return json({ error: "not found" }, 404);
+      if (!env.SETUP_TOKEN) return json({ error: "未找到注册入口" }, 404);
       const body = await request.json().catch(() => ({}));
-      if (body.token !== env.SETUP_TOKEN) return json({ error: "invalid setup token" }, 403);
+      if (body.token !== env.SETUP_TOKEN) return json({ error: "初始化令牌无效" }, 403);
       const expectedChallenge = await env.AUTH_KV.get("challenge:reg");
-      if (!expectedChallenge) return json({ error: "challenge expired" }, 400);
+      if (!expectedChallenge) return json({ error: "验证请求已过期" }, 400);
       let verification;
       try {
         verification = await verifyRegistrationResponse({
@@ -280,9 +280,9 @@ export default {
           requireUserVerification: false,
         });
       } catch (error) {
-        return json({ error: "verification failed: " + error.message }, 400);
+        return json({ error: "验证失败：" + error.message }, 400);
       }
-      if (!verification.verified) return json({ error: "registration was not verified" }, 400);
+      if (!verification.verified) return json({ error: "注册验证未通过" }, 400);
       const cred = extractRegistrationCredential(verification.registrationInfo);
       const creds = await loadCredentials(env);
       creds.push(cred);
@@ -293,7 +293,7 @@ export default {
 
     if (url.pathname === "/auth/login-options" && request.method === "POST") {
       const creds = await loadCredentials(env);
-      if (creds.length === 0) return json({ error: "no passkey is registered" }, 400);
+      if (creds.length === 0) return json({ error: "尚未注册通行密钥" }, 400);
       const options = await generateAuthenticationOptions({
         rpID,
         userVerification: "preferred",
@@ -306,10 +306,10 @@ export default {
     if (url.pathname === "/auth/login-verify" && request.method === "POST") {
       const resp = await request.json().catch(() => ({}));
       const expectedChallenge = await env.AUTH_KV.get("challenge:auth");
-      if (!expectedChallenge) return json({ error: "challenge expired" }, 400);
+      if (!expectedChallenge) return json({ error: "验证请求已过期" }, 400);
       const creds = await loadCredentials(env);
       const cred = creds.find((item) => item.id === resp.id);
-      if (!cred) return json({ error: "unknown credential" }, 400);
+      if (!cred) return json({ error: "无法识别此通行密钥" }, 400);
       const credential = {
         id: cred.id,
         publicKey: bytesFromB64url(cred.publicKey),
@@ -332,9 +332,9 @@ export default {
           requireUserVerification: false,
         });
       } catch (error) {
-        return json({ error: "verification failed: " + error.message }, 400);
+        return json({ error: "验证失败：" + error.message }, 400);
       }
-      if (!verification.verified) return json({ error: "login was not verified" }, 401);
+      if (!verification.verified) return json({ error: "登录验证未通过" }, 401);
       cred.counter = verification.authenticationInfo?.newCounter ?? cred.counter;
       await env.AUTH_KV.put("credentials", JSON.stringify(creds));
       await env.AUTH_KV.delete("challenge:auth");
@@ -352,7 +352,7 @@ export default {
     }
 
     if (url.pathname.startsWith("/api/")) {
-      if (!(await hasSession(request, env))) return json({ error: "unauthorized" }, 401);
+      if (!(await hasSession(request, env))) return json({ error: "尚未登录" }, 401);
       if (url.pathname === "/api/config" && request.method === "GET") {
         const config = panelConfig(env);
         return config.error ? json({ error: config.error }, 500) : json(config);
@@ -360,7 +360,7 @@ export default {
       if (url.pathname === "/api/maintenance") {
         return handleMaintenance(request, env);
       }
-      return json({ error: "not found" }, 404);
+      return json({ error: "未找到请求的接口" }, 404);
     }
 
     if (await hasSession(request, env)) {
@@ -381,6 +381,6 @@ export default {
       });
     }
 
-    return json({ error: "unauthorized" }, 401);
+    return json({ error: "尚未登录" }, 401);
   },
 };

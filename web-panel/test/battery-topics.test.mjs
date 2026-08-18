@@ -8,5 +8,5 @@ test("subscribes to dedicated calibrated topics and prefers their battery fields
   assert.match(panel, /status-calibrated/);
   assert.match(panel, /heartbeat-calibrated/);
   assert.match(panel, /if \(calibratedHeartbeat && calibratedHeartbeat\.calibrated === true\) return calibratedHeartbeat/);
-  assert.match(panel, /Cloud calibrated/);
+  assert.match(panel, /云端校准/);
 });

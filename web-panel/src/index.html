@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>LoRa Mailbox Panel</title>
+<title>LoRa 邮箱监控</title>
 <style>
 :root {
   --bg:#f5f6f8; --surface:#fff; --text:#1a1d21; --muted:#667085;
@@ -15,7 +15,7 @@
   :root { --bg:#111418; --surface:#1c2128; --text:#e6e8ea; --muted:#9aa3ad; --border:#303846; }
 }
 * { box-sizing:border-box; }
-body { margin:0; min-height:100vh; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+body { margin:0; min-height:100vh; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
 main { width:min(760px, 100%); margin:0 auto; padding:18px; }
 header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:4px 0 16px; }
 h1 { font-size:22px; margin:0; }
@@ -42,42 +42,42 @@ footer { color:var(--muted); font-size:12px; text-align:center; padding:18px 0 8
 <body>
 <main>
   <header>
-    <h1>LoRa Mailbox</h1>
-    <div id="connection" class="status">Loading config</div>
+    <h1>LoRa 邮箱</h1>
+    <div id="connection" class="status">正在加载配置</div>
   </header>
 
   <div class="grid">
     <section class="panel state" id="statePanel">
-      <strong id="stateText">Waiting for data</strong>
-      <span id="stateDetail">The panel has not received retained MQTT state yet.</span>
+      <strong id="stateText">正在等待数据</strong>
+      <span id="stateDetail">尚未收到 MQTT 保留状态。</span>
     </section>
 
     <section class="panel">
       <div class="rows">
-        <div class="row"><span class="label">Mailbox node</span><span id="nodeHealth"><span class="dot"></span>Unknown</span></div>
-        <div class="row"><span class="label">Gateway</span><span id="gateway"><span class="dot"></span>Unknown</span></div>
-        <div class="row"><span class="label">Heartbeat age</span><span id="heartbeatAge">-</span></div>
-        <div class="row"><span class="label">Battery</span><span id="battery">-</span></div>
-        <div class="row"><span class="label">Battery source</span><span id="batterySource">-</span></div>
-        <div class="row"><span class="label">Battery alert</span><span id="batteryAlert">-</span></div>
-        <div class="row"><span class="label">Node mode</span><span id="mode">-</span></div>
-        <div class="row"><span class="label">Sampling</span><span id="sampling">-</span></div>
-        <div class="row"><span class="label">Uptime</span><span id="uptime">-</span></div>
-        <div class="row"><span class="label">Last event</span><span id="event">-</span></div>
-        <div class="row"><span class="label">Offline monitor</span><span id="alarm">-</span></div>
+        <div class="row"><span class="label">邮箱节点</span><span id="nodeHealth"><span class="dot"></span>未知</span></div>
+        <div class="row"><span class="label">家庭网关</span><span id="gateway"><span class="dot"></span>未知</span></div>
+        <div class="row"><span class="label">心跳时间</span><span id="heartbeatAge">-</span></div>
+        <div class="row"><span class="label">电池</span><span id="battery">-</span></div>
+        <div class="row"><span class="label">电池数据来源</span><span id="batterySource">-</span></div>
+        <div class="row"><span class="label">电量告警</span><span id="batteryAlert">-</span></div>
+        <div class="row"><span class="label">节点模式</span><span id="mode">-</span></div>
+        <div class="row"><span class="label">采样状态</span><span id="sampling">-</span></div>
+        <div class="row"><span class="label">运行时间</span><span id="uptime">-</span></div>
+        <div class="row"><span class="label">最近事件</span><span id="event">-</span></div>
+        <div class="row"><span class="label">离线监控</span><span id="alarm">-</span></div>
       </div>
     </section>
   </div>
 
   <section class="panel actions">
-    <button id="resetBtn" disabled>Mark collected</button>
-    <button id="hbBtn" class="secondary">Request heartbeat</button>
-    <button id="modeBtn" class="secondary">Toggle debug mode</button>
-    <button id="testBtn" class="secondary">Send test delivery</button>
-    <button id="maintBtn" class="secondary">Pause offline monitor</button>
+    <button id="resetBtn" disabled>标记为已取件</button>
+    <button id="hbBtn" class="secondary">请求心跳</button>
+    <button id="modeBtn" class="secondary">切换调试模式</button>
+    <button id="testBtn" class="secondary">发送测试投递</button>
+    <button id="maintBtn" class="secondary">暂停离线监控</button>
   </section>
 
-  <footer>Authenticated panel. MQTT credentials are loaded from Worker environment variables after login.</footer>
+  <footer>已通过身份验证。登录后，MQTT 凭据由 Worker 环境变量安全加载。</footer>
 </main>
 
 <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
@@ -102,18 +102,18 @@ function dot(className, text) {
 function fmtAge(epochSeconds) {
   if (!epochSeconds) return "-";
   const minutes = Math.floor((Date.now() / 1000 - epochSeconds) / 60);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return minutes + " min ago";
+  if (minutes < 1) return "刚刚";
+  if (minutes < 60) return minutes + " 分钟前";
   const hours = Math.floor(minutes / 60);
-  if (hours < 48) return hours + " h ago";
-  return Math.floor(hours / 24) + " d ago";
+  if (hours < 48) return hours + " 小时前";
+  return Math.floor(hours / 24) + " 天前";
 }
 
 function fmtUptime(seconds) {
   if (seconds == null) return "-";
-  if (seconds < 3600) return Math.floor(seconds / 60) + " min";
-  if (seconds < 86400) return (seconds / 3600).toFixed(1) + " h";
-  return (seconds / 86400).toFixed(1) + " d";
+  if (seconds < 3600) return Math.floor(seconds / 60) + " 分钟";
+  if (seconds < 86400) return (seconds / 3600).toFixed(1) + " 小时";
+  return (seconds / 86400).toFixed(1) + " 天";
 }
 
 function currentDebugMode() {
@@ -161,70 +161,71 @@ function render() {
   const state = status ? status.state : null;
 
   if (offline) {
-    $("stateText").textContent = "Node offline";
-    $("stateDetail").textContent = "The gateway confirmed missed heartbeat probes.";
+    $("stateText").textContent = "节点离线";
+    $("stateDetail").textContent = "家庭网关已确认多次心跳探测均未响应。";
   } else if (probing) {
-    $("stateText").textContent = "Heartbeat late";
-    $("stateDetail").textContent = "The gateway is probing before raising an alert.";
+    $("stateText").textContent = "心跳延迟";
+    $("stateDetail").textContent = "家庭网关正在探测，确认后才会发送告警。";
   } else if (stale) {
-    $("stateText").textContent = "Heartbeat stale";
-    $("stateDetail").textContent = "No heartbeat within " + config.staleMinutes + " minutes.";
+    $("stateText").textContent = "心跳过期";
+    $("stateDetail").textContent = config.staleMinutes + " 分钟内未收到心跳。";
   } else if (state === "DELIVERED") {
-    $("stateText").textContent = "Mail waiting";
-    $("stateDetail").textContent = status.reset_pending ? "Reset command is pending over LoRa." : "Collect mail, then mark the box as collected.";
+    $("stateText").textContent = "有邮件待取";
+    $("stateDetail").textContent = status.reset_pending ? "重置命令正在通过 LoRa 发送。" : "取件后请在下方标记为已取件。";
   } else if (state === "ARMED") {
-    $("stateText").textContent = "Armed";
-    $("stateDetail").textContent = "The mailbox is empty and watching for delivery.";
+    $("stateText").textContent = "监控中";
+    $("stateDetail").textContent = "邮箱当前为空，正在等待投递。";
   } else {
-    $("stateText").textContent = state || "Waiting for data";
-    $("stateDetail").textContent = "The panel is waiting for retained MQTT state.";
+    $("stateText").textContent = state ? "状态：" + state : "正在等待数据";
+    $("stateDetail").textContent = "正在等待 MQTT 保留状态。";
   }
 
-  $("nodeHealth").innerHTML = offline ? dot("bad", "Offline")
-    : probing ? dot("warn", "Probing")
-    : stale === null ? dot("", "Unknown")
-    : stale ? dot("bad", "Stale") : dot("ok", "OK");
-  $("gateway").innerHTML = gateway === "online" ? dot("ok", "Online")
-    : gateway === "offline" ? dot("bad", "Offline") : dot("", "Unknown");
+  $("nodeHealth").innerHTML = offline ? dot("bad", "离线")
+    : probing ? dot("warn", "探测中")
+    : stale === null ? dot("", "未知")
+    : stale ? dot("bad", "心跳过期") : dot("ok", "正常");
+  $("gateway").innerHTML = gateway === "online" ? dot("ok", "在线")
+    : gateway === "offline" ? dot("bad", "离线") : dot("", "未知");
   $("heartbeatAge").textContent = heartbeat ? fmtAge(heartbeat.ts) : "-";
   const battery = currentBatteryTelemetry();
   $("battery").innerHTML = battery && battery.mv > 0
-    ? ((battery.low ? '<span class="low">' : "") + (battery.mv / 1000).toFixed(2) + " V / " + (battery.pct >= 0 ? battery.pct + "%" : "unknown") + (battery.low ? "</span>" : ""))
+    ? ((battery.low ? '<span class="low">' : "") + (battery.mv / 1000).toFixed(2) + " V / " + (battery.pct >= 0 ? battery.pct + "%" : "未知") + (battery.low ? "</span>" : ""))
     : "-";
   if (battery && battery.calibrated === true) {
     const offset = Number.isFinite(Number(battery.calibration_offset_mv))
-      ? " (" + (Number(battery.calibration_offset_mv) >= 0 ? "+" : "") + Number(battery.calibration_offset_mv) + " mV)"
+      ? (Number(battery.calibration_offset_mv) >= 0 ? "+" : "") + Number(battery.calibration_offset_mv) + " mV"
       : "";
     const samples = Number.isFinite(Number(battery.filtered_samples))
-      ? ", " + Number(battery.filtered_samples) + " samples"
+      ? Number(battery.filtered_samples) + " 个样本"
       : "";
-    $("batterySource").textContent = "Cloud calibrated" + offset + samples;
+    const details = [offset, samples].filter(Boolean);
+    $("batterySource").textContent = "云端校准" + (details.length ? "（" + details.join("，") + "）" : "");
   } else {
-    $("batterySource").innerHTML = battery ? '<span class="low">Raw node reading</span>' : "-";
+    $("batterySource").innerHTML = battery ? '<span class="low">节点原始读数</span>' : "-";
   }
   const alert = currentBatteryAlert();
-  $("batteryAlert").innerHTML = alert === "critical" ? '<span class="low">Critical</span>'
-    : alert === "low" ? '<span class="low">Low</span>'
-    : alert === "invalid" ? '<span class="low">Invalid reading</span>'
-    : alert === "ok" ? "OK" : "-";
+  $("batteryAlert").innerHTML = alert === "critical" ? '<span class="low">严重低电量</span>'
+    : alert === "low" ? '<span class="low">低电量</span>'
+    : alert === "invalid" ? '<span class="low">读数无效</span>'
+    : alert === "ok" ? "正常" : "-";
   const debug = currentDebugMode();
   const sampling = currentSampling();
-  $("mode").textContent = debug ? "Debug" : "Normal";
-  $("sampling").textContent = sampling === null ? "-" : sampling ? "Active" : "Idle";
+  $("mode").textContent = debug ? "调试" : "正常";
+  $("sampling").textContent = sampling === null ? "-" : sampling ? "采样中" : "空闲";
   const liveUptime = heartbeat ? heartbeat.uptime + Math.max(0, Math.floor(Date.now() / 1000 - heartbeat.ts)) : null;
   $("uptime").textContent = fmtUptime(liveUptime);
   $("event").textContent = status ? "#" + status.last_event_seq : "-";
-  $("modeBtn").textContent = debug ? "Return to normal mode" : "Enable debug mode";
+  $("modeBtn").textContent = debug ? "返回正常模式" : "启用调试模式";
 
   if (state === "DELIVERED" && !status.reset_pending) {
     $("resetBtn").disabled = false;
-    $("resetBtn").textContent = "Mark collected";
+    $("resetBtn").textContent = "标记为已取件";
   } else if (status && status.reset_pending) {
     $("resetBtn").disabled = true;
-    $("resetBtn").textContent = "Reset pending";
+    $("resetBtn").textContent = "正在重置";
   } else {
     $("resetBtn").disabled = true;
-    $("resetBtn").textContent = "Mark collected";
+    $("resetBtn").textContent = "标记为已取件";
   }
 }
 
@@ -236,7 +237,7 @@ function publish(topic, payload, options) {
 async function loadConfig() {
   const response = await fetch("/api/config");
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || "config HTTP " + response.status);
+  if (!response.ok) throw new Error(data.error || "配置请求失败（HTTP " + response.status + "）");
   config = data;
   topics = {
     status: config.topicPrefix + "/status",
@@ -251,7 +252,7 @@ async function loadConfig() {
 }
 
 function connectMqtt() {
-  $("connection").textContent = "Connecting";
+  $("connection").textContent = "正在连接";
   client = mqtt.connect(config.mqttUrl, {
     username: config.mqttUsername,
     password: config.mqttPassword,
@@ -261,12 +262,12 @@ function connectMqtt() {
     clean: true,
   });
   client.on("connect", () => {
-    $("connection").textContent = "Connected";
+    $("connection").textContent = "已连接";
     client.subscribe(config.topicPrefix + "/#");
   });
-  client.on("reconnect", () => { $("connection").textContent = "Reconnecting"; });
-  client.on("close", () => { $("connection").textContent = "Disconnected"; });
-  client.on("error", (error) => { $("connection").textContent = "MQTT error: " + error.message; });
+  client.on("reconnect", () => { $("connection").textContent = "正在重连"; });
+  client.on("close", () => { $("connection").textContent = "已断开"; });
+  client.on("error", (error) => { $("connection").textContent = "MQTT 错误：" + error.message; });
   client.on("message", (topic, payload) => {
     const text = payload.toString();
     try {
@@ -288,16 +289,23 @@ async function refreshMaintenance() {
     const response = await fetch("/api/maintenance");
     if (!response.ok) throw new Error(String(response.status));
     const data = await response.json();
-    $("alarm").textContent = data.status || "-";
+    const statusText = {
+      up: "正常",
+      paused: "已暂停",
+      down: "故障",
+      grace: "等待中",
+      new: "尚未检测",
+    };
+    $("alarm").textContent = statusText[data.status] || data.status || "-";
     $("maintBtn").disabled = data.status === "paused";
   } catch {
-    $("alarm").textContent = "not configured";
+    $("alarm").textContent = "未配置";
     $("maintBtn").disabled = true;
   }
 }
 
 $("resetBtn").addEventListener("click", () => {
-  if (!confirm("Mark the mailbox as collected?")) return;
+  if (!confirm("确认已取走邮箱中的邮件吗？")) return;
   publish(topics.reset, "collected");
 });
 
@@ -308,14 +316,14 @@ $("modeBtn").addEventListener("click", () => {
 });
 
 $("testBtn").addEventListener("click", () => {
-  if (!confirm("Send a full test delivery event?")) return;
+  if (!confirm("发送一次完整的测试投递事件吗？")) return;
   publish(topics.command, "test");
 });
 
 $("maintBtn").addEventListener("click", async () => {
-  if (!confirm("Pause offline alerts for maintenance?")) return;
+  if (!confirm("维护期间暂停离线告警吗？")) return;
   const response = await fetch("/api/maintenance", { method: "POST" });
-  if (!response.ok) alert("Maintenance request failed.");
+  if (!response.ok) alert("暂停离线监控失败。");
   await refreshMaintenance();
 });
 
@@ -328,8 +336,8 @@ $("maintBtn").addEventListener("click", async () => {
     setInterval(render, 30000);
     setInterval(refreshMaintenance, 120000);
   } catch (error) {
-    $("connection").textContent = "Config error";
-    $("stateText").textContent = "Panel not configured";
+    $("connection").textContent = "配置错误";
+    $("stateText").textContent = "面板尚未配置";
     $("stateDetail").textContent = error.message;
   }
 })();

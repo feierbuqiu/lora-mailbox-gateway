@@ -5,7 +5,7 @@ Cloudflare Pages Worker and static status panel for LoRa Mailbox Gateway. The pa
 Current package:
 
 ```text
-@feierbuqiu/lora-mailbox-panel@0.2.2
+@feierbuqiu/lora-mailbox-panel@0.2.3
 ```
 
 ## Install
@@ -38,7 +38,7 @@ The build writes a Cloudflare Pages-compatible `deploy/` directory containing:
 - `_worker.js`
 - `index.html`
 
-Version `0.2.2` subscribes to both the original firmware heartbeat/status schema and the dedicated calibrated topics published by the repository's optional `cloud-battery-monitor` Worker. Battery voltage, percentage, and alert state prefer the calibrated topics, while mailbox state continues to come from the gateway-owned raw topics. The UI labels whether it is showing a cloud-calibrated or raw node reading. No site-specific battery offset or MQTT credential is embedded in this package.
+Version `0.2.3` subscribes to both the original firmware heartbeat/status schema and the dedicated calibrated topics published by the repository's optional `cloud-battery-monitor` Worker. Battery voltage, percentage, and alert state prefer the calibrated topics, while mailbox state continues to come from the gateway-owned raw topics. The passkey login, status cards, alerts, confirmations, controls, and relative times are presented in Simplified Chinese. No site-specific battery offset or MQTT credential is embedded in this package.
 
 ## Runtime Configuration
 
@@ -64,7 +64,7 @@ This package is published by the repository's `Publish Web Panel Package` workfl
 lora-mailbox-panel-v<version>
 ```
 
-The current package tag is `lora-mailbox-panel-v0.2.2`.
+The current package tag is `lora-mailbox-panel-v0.2.3`.
 
 ## License
 

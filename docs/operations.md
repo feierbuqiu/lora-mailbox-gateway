@@ -80,8 +80,8 @@ Calibration policy:
 
 Public releases and packages are part of the operational surface:
 
-- Repository releases are attached to signed annotated tags such as `v0.2.2`.
-- Panel package publications are attached to signed tags such as `lora-mailbox-panel-v0.2.2`.
+- Repository releases are attached to signed annotated tags such as `v0.2.3`.
+- Panel package publications are attached to signed tags such as `lora-mailbox-panel-v0.2.3`.
 - Release assets include checksum files so downstream users can verify downloads.
 - The panel package is published by the `Publish Web Panel Package` workflow with `GITHUB_TOKEN` and `packages: write`.
 
