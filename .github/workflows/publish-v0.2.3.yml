@@ -69,13 +69,35 @@ jobs:
             '91aacd5e3678e7719f815348bb6ae98feefb7acb7ff690beae7011c851f9a8cf' \
             '/tmp/lora-mailbox-gateway-v0.2.1-example-firmware.zip' \
             | sha256sum --check
-          mkdir baseline-firmware
-          python -m zipfile --extract /tmp/lora-mailbox-gateway-v0.2.1-example-firmware.zip baseline-firmware
-          for environment in home mail hello; do
-            for artifact in bootloader.bin firmware.bin firmware.elf partitions.bin; do
-              test -f "baseline-firmware/${environment}/${artifact}"
-            done
-          done
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          archive_path = Path("/tmp/lora-mailbox-gateway-v0.2.1-example-firmware.zip")
+          output_root = Path("baseline-firmware")
+          required = [
+              f"{environment}/{artifact}"
+              for environment in ("home", "mail", "hello")
+              for artifact in ("bootloader.bin", "firmware.bin", "firmware.elf", "partitions.bin")
+          ]
+
+          with ZipFile(archive_path) as archive:
+              members = {}
+              for info in archive.infolist():
+                  normalized = info.filename.replace("\\", "/")
+                  if normalized in members:
+                      raise RuntimeError(f"Duplicate normalized ZIP member: {normalized}")
+                  members[normalized] = info
+
+              for name in required:
+                  if name not in members:
+                      raise RuntimeError(f"Missing required firmware file: {name}")
+                  destination = output_root.joinpath(*name.split("/"))
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  destination.write_bytes(archive.read(members[name]))
+
+          print(f"Verified and extracted {len(required)} baseline firmware files.")
+          PY
 
       - name: Build and verify web panel
         working-directory: web-panel
