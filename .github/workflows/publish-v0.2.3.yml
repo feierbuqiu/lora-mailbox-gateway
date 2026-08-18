@@ -1,0 +1,164 @@
+name: Publish v0.2.3 Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-v0.2.3.yml"
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: publish-v0.2.3
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: v0.2.3
+  PACKAGE_TAG: lora-mailbox-panel-v0.2.3
+  VERSION: 0.2.3
+
+jobs:
+  publish:
+    name: Build, release, and publish package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the signed release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+
+      - name: Confirm release and package tags target the same commit
+        shell: bash
+        run: |
+          git fetch --force origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}" "refs/tags/${PACKAGE_TAG}:refs/tags/${PACKAGE_TAG}"
+          test "$(git rev-list -n 1 "${RELEASE_TAG}")" = "$(git rev-list -n 1 "${PACKAGE_TAG}")"
+          test "$(node -p "require('./web-panel/package.json').version")" = "${VERSION}"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+          scope: "@feierbuqiu"
+          cache: npm
+          cache-dependency-path: |
+            web-panel/package-lock.json
+            cloud-battery-monitor/package-lock.json
+
+      - name: Build example firmware
+        shell: bash
+        run: |
+          python -m pip install --upgrade platformio
+          cp firmware/include/lora_mail_config.example.h firmware/include/lora_mail_config.h
+          platformio run -d firmware -e home -e mail -e hello
+
+      - name: Fetch and verify the unchanged example firmware
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 \
+            --output /tmp/lora-mailbox-gateway-v0.2.1-example-firmware.zip \
+            https://github.com/feierbuqiu/lora-mailbox-gateway/releases/download/v0.2.1/lora-mailbox-gateway-v0.2.1-example-firmware.zip
+          printf '%s  %s\n' \
+            '91aacd5e3678e7719f815348bb6ae98feefb7acb7ff690beae7011c851f9a8cf' \
+            '/tmp/lora-mailbox-gateway-v0.2.1-example-firmware.zip' \
+            | sha256sum --check
+          mkdir baseline-firmware
+          unzip -q /tmp/lora-mailbox-gateway-v0.2.1-example-firmware.zip -d baseline-firmware
+
+      - name: Build and verify web panel
+        working-directory: web-panel
+        run: |
+          npm ci
+          npm test
+          npm run build
+          npm pack --dry-run
+
+      - name: Verify cloud battery monitor
+        working-directory: cloud-battery-monitor
+        run: |
+          npm ci
+          npm test
+          npx wrangler deploy --dry-run
+
+      - name: Assemble release archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf release-staging release-assets
+          mkdir -p release-staging/firmware/{home,mail,hello}
+          mkdir -p release-staging/web-panel
+          mkdir -p release-staging/cloud-battery-monitor
+          mkdir -p release-assets
+
+          cp firmware/include/lora_mail_config.example.h release-staging/firmware/
+          cp docs/releases/v0.2.3.md release-staging/firmware/RELEASE_NOTES.md
+          for environment in home mail hello; do
+            cp "baseline-firmware/${environment}/bootloader.bin" release-staging/firmware/"${environment}/"
+            cp "baseline-firmware/${environment}/firmware.bin" release-staging/firmware/"${environment}/"
+            cp "baseline-firmware/${environment}/firmware.elf" release-staging/firmware/"${environment}/"
+            cp "baseline-firmware/${environment}/partitions.bin" release-staging/firmware/"${environment}/"
+          done
+
+          cp web-panel/README.md release-staging/web-panel/
+          cp docs/releases/v0.2.3.md release-staging/web-panel/RELEASE_NOTES.md
+          cp -R web-panel/deploy release-staging/web-panel/
+
+          cp LICENSE release-staging/cloud-battery-monitor/
+          cp cloud-battery-monitor/package.json release-staging/cloud-battery-monitor/
+          cp cloud-battery-monitor/package-lock.json release-staging/cloud-battery-monitor/
+          cp cloud-battery-monitor/README.md release-staging/cloud-battery-monitor/
+          cp cloud-battery-monitor/wrangler.jsonc release-staging/cloud-battery-monitor/
+          cp docs/releases/v0.2.3.md release-staging/cloud-battery-monitor/RELEASE_NOTES.md
+          cp -R cloud-battery-monitor/src release-staging/cloud-battery-monitor/
+          cp -R cloud-battery-monitor/test release-staging/cloud-battery-monitor/
+
+          (
+            cd release-staging/firmware
+            zip -9 -r ../../release-assets/lora-mailbox-gateway-v0.2.3-example-firmware.zip .
+          )
+          (
+            cd release-staging/web-panel
+            zip -9 -r ../../release-assets/lora-mailbox-gateway-v0.2.3-web-panel.zip .
+          )
+          (
+            cd release-staging/cloud-battery-monitor
+            zip -9 -r ../../release-assets/lora-mailbox-gateway-v0.2.3-cloud-battery-monitor.zip .
+          )
+          (
+            cd release-assets
+            sha256sum *.zip > SHA256SUMS.txt
+          )
+
+          unzip -l release-assets/lora-mailbox-gateway-v0.2.3-web-panel.zip
+          unzip -l release-assets/lora-mailbox-gateway-v0.2.3-cloud-battery-monitor.zip
+          cat release-assets/SHA256SUMS.txt
+
+      - name: Create or refresh the English GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release edit "${RELEASE_TAG}" --title "LoRa Mailbox Gateway v0.2.3" --notes-file docs/releases/v0.2.3.md --latest
+            gh release upload "${RELEASE_TAG}" release-assets/* --clobber
+          else
+            gh release create "${RELEASE_TAG}" release-assets/* --verify-tag --latest --title "LoRa Mailbox Gateway v0.2.3" --notes-file docs/releases/v0.2.3.md
+          fi
+
+      - name: Publish GitHub Package
+        working-directory: web-panel
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if npm view "@feierbuqiu/lora-mailbox-panel@${VERSION}" version --registry=https://npm.pkg.github.com >/dev/null 2>&1; then
+            echo "Package version ${VERSION} is already published."
+          else
+            npm publish
+          fi

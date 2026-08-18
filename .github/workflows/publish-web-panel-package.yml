@@ -33,6 +33,13 @@ jobs:
         run: npm pack --dry-run
       - name: Publish package
         working-directory: web-panel
-        run: npm publish
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if npm view "@feierbuqiu/lora-mailbox-panel@${VERSION}" version --registry=https://npm.pkg.github.com >/dev/null 2>&1; then
+            echo "Package version ${VERSION} is already published."
+          else
+            npm publish
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
