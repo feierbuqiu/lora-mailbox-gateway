@@ -6,7 +6,7 @@ This guide provisions a reproducible open-source deployment without committing c
 
 There are three supported entry points:
 
-- **Release artifacts**: use [v0.2.1](https://github.com/feierbuqiu/lora-mailbox-gateway/releases/tag/v0.2.1) when you want the current pinned public baseline with checksums.
+- **Release artifacts**: use [v0.2.2](https://github.com/feierbuqiu/lora-mailbox-gateway/releases/tag/v0.2.2) when you want the current pinned public baseline with checksums.
 - **Source checkout**: clone the repository when provisioning real hardware or changing firmware/panel behavior.
 - **Panel package**: install `@feierbuqiu/lora-mailbox-panel` from GitHub Packages when you only need the Cloudflare panel source.
 
@@ -31,19 +31,19 @@ Download the latest public release from:
 https://github.com/feierbuqiu/lora-mailbox-gateway/releases
 ```
 
-For `v0.2.1`, the release contains:
+For `v0.2.2`, the release contains:
 
-- `lora-mailbox-gateway-v0.2.1-example-firmware.zip`
-- `lora-mailbox-gateway-v0.2.1-web-panel.zip`
-- `lora-mailbox-gateway-v0.2.1-cloud-battery-monitor.zip`
+- `lora-mailbox-gateway-v0.2.2-example-firmware.zip`
+- `lora-mailbox-gateway-v0.2.2-web-panel.zip`
+- `lora-mailbox-gateway-v0.2.2-cloud-battery-monitor.zip`
 - `SHA256SUMS.txt`
 
 Verify downloaded artifacts before inspecting or deploying them:
 
 ```powershell
-Get-FileHash .\lora-mailbox-gateway-v0.2.1-web-panel.zip -Algorithm SHA256
-Get-FileHash .\lora-mailbox-gateway-v0.2.1-example-firmware.zip -Algorithm SHA256
-Get-FileHash .\lora-mailbox-gateway-v0.2.1-cloud-battery-monitor.zip -Algorithm SHA256
+Get-FileHash .\lora-mailbox-gateway-v0.2.2-web-panel.zip -Algorithm SHA256
+Get-FileHash .\lora-mailbox-gateway-v0.2.2-example-firmware.zip -Algorithm SHA256
+Get-FileHash .\lora-mailbox-gateway-v0.2.2-cloud-battery-monitor.zip -Algorithm SHA256
 Get-Content .\SHA256SUMS.txt
 ```
 
@@ -152,7 +152,7 @@ Configure the GitHub Packages scope:
 Then install it in a separate workspace if you only need the panel:
 
 ```powershell
-npm install @feierbuqiu/lora-mailbox-panel@0.2.1
+npm install @feierbuqiu/lora-mailbox-panel@0.2.2
 ```
 
 GitHub Packages requires an authenticated npm client, even for public packages. Keep npm tokens in your user-level npm config or CI secrets, not in this repository.
@@ -188,7 +188,7 @@ BATTERY_FULL_MV          default 4200
 BATTERY_MAX_MV           default 4220
 ```
 
-The repository default for `BATTERY_OFFSET_MV` is `0`. A live installation must supply its own offset; a value measured on one ADC/divider combination is not portable to another. After deployment, confirm `/health`, run one authenticated `POST /run`, inspect retained `mailbox/battery-cloud-state`, and verify that the panel shows the calibrated voltage and linear percentage.
+The repository default for `BATTERY_OFFSET_MV` is `0`. A live installation must supply its own offset; a value measured on one ADC/divider combination is not portable to another. After deployment, confirm `/health`, run one authenticated `POST /run`, inspect retained `mailbox/battery-cloud-state`, and verify that `mailbox/heartbeat-calibrated` shows the corrected value while the raw gateway topic remains independent. The panel should label the displayed voltage as cloud calibrated.
 
 ## Make/Webhook Contract
 

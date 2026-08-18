@@ -29,11 +29,11 @@ Private credentials, operational exports, logs, photos, and historical snapshots
 
 ## Published Artifacts
 
-- Latest public release: [v0.2.1](https://github.com/feierbuqiu/lora-mailbox-gateway/releases/tag/v0.2.1)
-- GitHub Packages npm package: `@feierbuqiu/lora-mailbox-panel@0.2.1`
+- Latest public release: [v0.2.2](https://github.com/feierbuqiu/lora-mailbox-gateway/releases/tag/v0.2.2)
+- GitHub Packages npm package: `@feierbuqiu/lora-mailbox-panel@0.2.2`
 - Signed source tags:
-  - `v0.2.1` for the current repository release
-  - `lora-mailbox-panel-v0.2.1` for the current panel package publication
+  - `v0.2.2` for the current repository release
+  - `lora-mailbox-panel-v0.2.2` for the current panel package publication
 
 The release includes example firmware builds, a built Cloudflare panel bundle, the deployable cloud battery monitor source, and `SHA256SUMS.txt`. Example firmware binaries are for inspection and smoke testing only; production firmware should be rebuilt locally with your own ignored configuration.
 
@@ -76,7 +76,7 @@ The Cloudflare panel is published separately through GitHub Packages:
 @feierbuqiu/lora-mailbox-panel
 ```
 
-The current package version is `0.2.1`. It remains compatible with raw firmware telemetry and with the calibrated retained payloads produced by `cloud-battery-monitor/`.
+The current package version is `0.2.2`. It keeps raw gateway state separate from calibrated battery state and prefers the stable calibrated retained topics produced by `cloud-battery-monitor/`.
 
 Use it when you want to inspect or rebuild the panel without cloning the full firmware repository. GitHub Packages requires npm authentication, so configure the `@feierbuqiu` scope for `https://npm.pkg.github.com` before installing:
 
@@ -86,7 +86,7 @@ Use it when you want to inspect or rebuild the panel without cloning the full fi
 
 ## Cloud Battery Monitor
 
-`cloud-battery-monitor/` is an optional scheduled Worker for installations where retrieving the mailbox node for a firmware update is impractical. It reads retained heartbeat/status messages over MQTT WSS, applies a deployment-specific voltage offset, keeps the latest five distinct samples, publishes a 10 mV-rounded median, and recalculates percentage linearly from 3.3 V to 4.2 V.
+`cloud-battery-monitor/` is an optional scheduled Worker for installations where retrieving the mailbox node for a firmware update is impractical. It reads the raw retained heartbeat/status messages over MQTT WSS, applies a deployment-specific voltage offset, keeps the latest five distinct samples, publishes a 10 mV-rounded median on dedicated calibrated topics, and recalculates percentage linearly from 3.3 V to 4.2 V. Separating raw and calibrated topics prevents the gateway and Worker from overwriting each other's retained values.
 
 The repository default offset is `0 mV`. Set `BATTERY_OFFSET_MV` in the Cloudflare deployment from a real meter comparison; do not copy another installation's calibration value. See [cloud-battery-monitor/README.md](cloud-battery-monitor/README.md) for deployment, secrets, alert behavior, and verification.
 

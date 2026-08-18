@@ -10,14 +10,14 @@ Every minute it:
 2. applies the deployment calibration offset (`0 mV` in public source; set `BATTERY_OFFSET_MV` from a real meter comparison);
 3. takes the median of the latest five distinct heartbeats and rounds display voltage to `10 mV`;
 4. calculates percentage linearly with `3.3 V = 0%` and `4.2 V = 100%`;
-5. republishes calibrated retained heartbeat/status payloads on the existing topics, so the existing panel updates without a panel or node firmware change;
+5. publishes calibrated heartbeat/status payloads on the dedicated retained topics `mailbox/heartbeat-calibrated` and `mailbox/status-calibrated`;
 6. sends calibrated low/critical alerts through the existing Make webhook, with a 24-hour repeat cooldown.
 
 The retained `mailbox/battery-cloud-state` topic stores filter and alert state, so no database or KV binding is required.
 
 ## Why this exists
 
-Some mailbox nodes are permanently installed in a location where physical retrieval and reflashing are disproportionately expensive. This Worker corrects the existing retained MQTT contract from the cloud side, so the firmware and panel can remain untouched. It preserves the raw values alongside calibrated fields for later auditing.
+Some mailbox nodes are permanently installed in a location where physical retrieval and reflashing are disproportionately expensive. This Worker corrects telemetry from the cloud side, so the installed firmware can remain untouched. Raw gateway topics remain gateway-owned, while the Worker owns dedicated calibrated topics and preserves the original values inside the calibrated payload for auditing. This single-writer split prevents the panel from alternating between raw and calibrated readings after each heartbeat.
 
 The correction is an installation calibration, not a universal ESP32S3 constant. For example, if a meter reads `4215 mV` while the retained raw heartbeat reports `4051 mV` under comparable conditions, configure `BATTERY_OFFSET_MV=164`. Another divider, ADC, battery, or load path needs its own measurement.
 
@@ -56,4 +56,5 @@ For a production check, confirm all of the following:
 2. unauthenticated `POST /run` returns `401`.
 3. an authenticated run reports raw, corrected, displayed, percentage, level, and sample count fields.
 4. `mailbox/battery-cloud-state` grows only on distinct raw heartbeat timestamps.
-5. the panel receives `calibrated: true`, keeps `raw_mv`, and shows the filtered voltage/percentage.
+5. `mailbox/heartbeat` remains raw after the next gateway heartbeat, while `mailbox/heartbeat-calibrated` remains `calibrated: true` and keeps `raw_mv`;
+6. the panel shows the filtered voltage/percentage and identifies the value as cloud calibrated.

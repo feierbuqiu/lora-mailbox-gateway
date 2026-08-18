@@ -58,6 +58,7 @@ footer { color:var(--muted); font-size:12px; text-align:center; padding:18px 0 8
         <div class="row"><span class="label">Gateway</span><span id="gateway"><span class="dot"></span>Unknown</span></div>
         <div class="row"><span class="label">Heartbeat age</span><span id="heartbeatAge">-</span></div>
         <div class="row"><span class="label">Battery</span><span id="battery">-</span></div>
+        <div class="row"><span class="label">Battery source</span><span id="batterySource">-</span></div>
         <div class="row"><span class="label">Battery alert</span><span id="batteryAlert">-</span></div>
         <div class="row"><span class="label">Node mode</span><span id="mode">-</span></div>
         <div class="row"><span class="label">Sampling</span><span id="sampling">-</span></div>
@@ -88,6 +89,8 @@ let config;
 let topics;
 let status = null;
 let heartbeat = null;
+let calibratedStatus = null;
+let calibratedHeartbeat = null;
 let gateway = null;
 let mode = null;
 let client = null;
@@ -126,7 +129,21 @@ function currentSampling() {
   return null;
 }
 
+function currentBatteryTelemetry() {
+  if (calibratedHeartbeat && calibratedHeartbeat.calibrated === true) return calibratedHeartbeat;
+  if (heartbeat && heartbeat.calibrated === true) return heartbeat;
+  return heartbeat;
+}
+
 function currentBatteryAlert() {
+  if (calibratedStatus && calibratedStatus.battery_calibrated === true && calibratedStatus.battery_alert) {
+    return calibratedStatus.battery_alert;
+  }
+  if (calibratedHeartbeat && calibratedHeartbeat.calibrated === true && calibratedHeartbeat.battery_alert) {
+    return calibratedHeartbeat.battery_alert;
+  }
+  if (status && status.battery_calibrated === true && status.battery_alert) return status.battery_alert;
+  if (heartbeat && heartbeat.calibrated === true && heartbeat.battery_alert) return heartbeat.battery_alert;
   if (status && status.battery_alert) return status.battery_alert;
   if (heartbeat && heartbeat.battery_alert) return heartbeat.battery_alert;
   return null;
@@ -170,9 +187,21 @@ function render() {
   $("gateway").innerHTML = gateway === "online" ? dot("ok", "Online")
     : gateway === "offline" ? dot("bad", "Offline") : dot("", "Unknown");
   $("heartbeatAge").textContent = heartbeat ? fmtAge(heartbeat.ts) : "-";
-  $("battery").innerHTML = heartbeat && heartbeat.mv > 0
-    ? ((heartbeat.low ? '<span class="low">' : "") + (heartbeat.mv / 1000).toFixed(2) + " V / " + (heartbeat.pct >= 0 ? heartbeat.pct + "%" : "unknown") + (heartbeat.low ? "</span>" : ""))
+  const battery = currentBatteryTelemetry();
+  $("battery").innerHTML = battery && battery.mv > 0
+    ? ((battery.low ? '<span class="low">' : "") + (battery.mv / 1000).toFixed(2) + " V / " + (battery.pct >= 0 ? battery.pct + "%" : "unknown") + (battery.low ? "</span>" : ""))
     : "-";
+  if (battery && battery.calibrated === true) {
+    const offset = Number.isFinite(Number(battery.calibration_offset_mv))
+      ? " (" + (Number(battery.calibration_offset_mv) >= 0 ? "+" : "") + Number(battery.calibration_offset_mv) + " mV)"
+      : "";
+    const samples = Number.isFinite(Number(battery.filtered_samples))
+      ? ", " + Number(battery.filtered_samples) + " samples"
+      : "";
+    $("batterySource").textContent = "Cloud calibrated" + offset + samples;
+  } else {
+    $("batterySource").innerHTML = battery ? '<span class="low">Raw node reading</span>' : "-";
+  }
   const alert = currentBatteryAlert();
   $("batteryAlert").innerHTML = alert === "critical" ? '<span class="low">Critical</span>'
     : alert === "low" ? '<span class="low">Low</span>'
@@ -212,6 +241,8 @@ async function loadConfig() {
   topics = {
     status: config.topicPrefix + "/status",
     heartbeat: config.topicPrefix + "/heartbeat",
+    calibratedStatus: config.topicPrefix + "/status-calibrated",
+    calibratedHeartbeat: config.topicPrefix + "/heartbeat-calibrated",
     gateway: config.topicPrefix + "/gateway",
     reset: config.topicPrefix + "/reset",
     command: config.topicPrefix + "/command",
@@ -241,6 +272,8 @@ function connectMqtt() {
     try {
       if (topic === topics.status) status = JSON.parse(text);
       else if (topic === topics.heartbeat) heartbeat = JSON.parse(text);
+      else if (topic === topics.calibratedStatus) calibratedStatus = JSON.parse(text);
+      else if (topic === topics.calibratedHeartbeat) calibratedHeartbeat = JSON.parse(text);
       else if (topic === topics.gateway) gateway = text;
       else if (topic === topics.mode) mode = text.trim();
     } catch (error) {

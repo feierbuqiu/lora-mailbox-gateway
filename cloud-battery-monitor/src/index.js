@@ -5,9 +5,13 @@ import {
 } from "./battery.js";
 import { publishRetainedTopics, readRetainedTopics } from "./mqtt.js";
 
-const TOPIC_HEARTBEAT = "mailbox/heartbeat";
-const TOPIC_STATUS = "mailbox/status";
-const TOPIC_STATE = "mailbox/battery-cloud-state";
+export const TOPICS = Object.freeze({
+  rawHeartbeat: "mailbox/heartbeat",
+  rawStatus: "mailbox/status",
+  calibratedHeartbeat: "mailbox/heartbeat-calibrated",
+  calibratedStatus: "mailbox/status-calibrated",
+  state: "mailbox/battery-cloud-state",
+});
 
 function numberEnv(value, fallback) {
   const number = Number(value);
@@ -44,6 +48,45 @@ function parseJsonMessage(messages, topic) {
   } catch {
     throw new Error(`Retained MQTT topic ${topic} is not valid JSON`);
   }
+}
+
+function isCalibratedHeartbeat(value) {
+  return value && typeof value === "object" &&
+    (value.calibrated === true || value.calibration === "cloud-offset-median-v1");
+}
+
+function statusFromCalibratedHeartbeat(status, heartbeat) {
+  const source = status && typeof status === "object" ? status : {};
+  return {
+    ...source,
+    battery_raw_mv: Number.isFinite(Number(source.battery_raw_mv))
+      ? Math.round(Number(source.battery_raw_mv))
+      : Math.round(Number(heartbeat.raw_mv ?? heartbeat.mv)),
+    battery_raw_pct: Number.isFinite(Number(source.battery_raw_pct))
+      ? Math.round(Number(source.battery_raw_pct))
+      : Math.round(Number(heartbeat.raw_pct ?? heartbeat.pct)),
+    battery_mv: Math.round(Number(heartbeat.mv)),
+    battery_pct: Math.round(Number(heartbeat.pct)),
+    battery_low: Boolean(heartbeat.low),
+    battery_alert: heartbeat.battery_alert || "ok",
+    battery_calibrated: true,
+    battery_calibration: heartbeat.calibration,
+    battery_calibration_offset_mv: heartbeat.calibration_offset_mv,
+  };
+}
+
+export function buildLegacyMigration({ heartbeat, status, calibratedHeartbeat, calibratedStatus }) {
+  if (!isCalibratedHeartbeat(heartbeat)) return null;
+  const messages = {};
+  if (!isCalibratedHeartbeat(calibratedHeartbeat)) {
+    messages[TOPICS.calibratedHeartbeat] = heartbeat;
+  }
+  if (!calibratedStatus || calibratedStatus.battery_calibrated !== true) {
+    messages[TOPICS.calibratedStatus] = status?.battery_calibrated === true
+      ? status
+      : statusFromCalibratedHeartbeat(status, heartbeat);
+  }
+  return Object.keys(messages).length ? messages : null;
 }
 
 export function buildBatteryAlert(result) {
@@ -85,12 +128,26 @@ async function sendBatteryAlert(env, result) {
 export async function runMonitor(env, nowSec = Math.floor(Date.now() / 1000)) {
   const messages = await readRetainedTopics({
     ...mqttOptions(env, "read"),
-    topics: [TOPIC_HEARTBEAT, TOPIC_STATUS, TOPIC_STATE],
-    requiredTopic: TOPIC_HEARTBEAT,
+    topics: Object.values(TOPICS),
+    requiredTopic: TOPICS.rawHeartbeat,
   });
-  const heartbeat = parseJsonMessage(messages, TOPIC_HEARTBEAT);
-  const status = parseJsonMessage(messages, TOPIC_STATUS);
-  const state = parseJsonMessage(messages, TOPIC_STATE);
+  const heartbeat = parseJsonMessage(messages, TOPICS.rawHeartbeat);
+  const status = parseJsonMessage(messages, TOPICS.rawStatus);
+  const state = parseJsonMessage(messages, TOPICS.state);
+  const calibratedHeartbeat = parseJsonMessage(messages, TOPICS.calibratedHeartbeat);
+  const calibratedStatus = parseJsonMessage(messages, TOPICS.calibratedStatus);
+
+  const migration = buildLegacyMigration({ heartbeat, status, calibratedHeartbeat, calibratedStatus });
+  if (migration) {
+    await publishRetainedTopics(mqttOptions(env, "write"), migration);
+    return {
+      ok: true,
+      changed: true,
+      migrated: true,
+      published_topics: Object.keys(migration),
+    };
+  }
+
   const result = processTelemetry({
     heartbeat,
     status,
@@ -117,9 +174,9 @@ export async function runMonitor(env, nowSec = Math.floor(Date.now() / 1000)) {
   }
 
   await publishRetainedTopics(mqttOptions(env, "write"), {
-    [TOPIC_HEARTBEAT]: result.heartbeat,
-    [TOPIC_STATUS]: result.status,
-    [TOPIC_STATE]: nextState,
+    [TOPICS.calibratedHeartbeat]: result.heartbeat,
+    [TOPICS.calibratedStatus]: result.status,
+    [TOPICS.state]: nextState,
   });
 
   return {
@@ -148,7 +205,12 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/health") {
-      return json({ ok: true, service: "mailbox-battery-monitor", calibration: "offset+median+linear-percent" });
+      return json({
+        ok: true,
+        service: "mailbox-battery-monitor",
+        calibration: "offset+median+linear-percent",
+        output: "dedicated-calibrated-topics",
+      });
     }
     if (url.pathname === "/run" && request.method === "POST") {
       const expected = env.MONITOR_ADMIN_TOKEN ? `Bearer ${env.MONITOR_ADMIN_TOKEN}` : null;

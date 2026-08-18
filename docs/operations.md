@@ -33,7 +33,7 @@ Mailbox node:
 
 ## MQTT Operations
 
-Use retained MQTT topics to recover the panel state after reload. The gateway publishes `mailbox/status`, `mailbox/heartbeat`, and `mailbox/gateway`. The panel publishes `mailbox/reset`, `mailbox/command`, and `mailbox/mode`.
+Use retained MQTT topics to recover the panel state after reload. The gateway publishes raw `mailbox/status`, `mailbox/heartbeat`, and `mailbox/gateway` values. The cloud monitor publishes `mailbox/status-calibrated` and `mailbox/heartbeat-calibrated`; the panel prefers these topics for battery fields while continuing to use raw topics for live mailbox state. The panel publishes `mailbox/reset`, `mailbox/command`, and `mailbox/mode`.
 
 Use a separate MQTT username/password for the panel. Keep the panel account limited to the mailbox topic prefix where your broker supports ACLs.
 
@@ -56,7 +56,7 @@ Rotate these independently:
 
 ## Cloud Battery Monitor Operations
 
-The scheduled Worker runs every minute but only adds a filter sample when it sees a new raw heartbeat timestamp. It republishes corrected retained heartbeat/status payloads and stores its filter/alert state in `mailbox/battery-cloud-state`.
+The scheduled Worker runs every minute but only adds a filter sample when it sees a new raw heartbeat timestamp. It publishes corrected retained payloads to `mailbox/heartbeat-calibrated` and `mailbox/status-calibrated`, and stores filter/alert state in `mailbox/battery-cloud-state`. Do not point another writer at the calibrated topics; the single-writer split is what prevents display oscillation.
 
 Operational checks:
 
@@ -80,8 +80,8 @@ Calibration policy:
 
 Public releases and packages are part of the operational surface:
 
-- Repository releases are attached to signed annotated tags such as `v0.2.1`.
-- Panel package publications are attached to signed tags such as `lora-mailbox-panel-v0.2.1`.
+- Repository releases are attached to signed annotated tags such as `v0.2.2`.
+- Panel package publications are attached to signed tags such as `lora-mailbox-panel-v0.2.2`.
 - Release assets include checksum files so downstream users can verify downloads.
 - The panel package is published by the `Publish Web Panel Package` workflow with `GITHUB_TOKEN` and `packages: write`.
 
